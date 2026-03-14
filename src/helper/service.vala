@@ -86,11 +86,12 @@ namespace VictusControl {
         }
 
         public bool set_fan_mode (string mode) throws Error {
-            throw new ControlError.UNSUPPORTED("Direct fan mode control is not validated on this host.");
+            backend.set_fan_mode(mode);
+            return true;
         }
 
         public bool set_fan_levels (uint16 cpu, uint16 gpu) throws Error {
-            throw new ControlError.UNSUPPORTED("Direct fan level control is not validated on this host.");
+            throw new ControlError.UNSUPPORTED("Granular fan level control is not available. Use fan mode auto or max.");
         }
 
         public HashTable<string, Variant> run_probe (string probe_name, HashTable<string, Variant> args) throws Error {

@@ -14,13 +14,13 @@ namespace VictusControl {
         private Gtk.Label fan1_label;
         private Gtk.Label fan2_label;
         private Gtk.Label fan_support_label;
+        private Gtk.Label fan_mode_label;
         private Gtk.Switch auto_policy_switch;
         private Gtk.Button quiet_button;
         private Gtk.Button balanced_button;
         private Gtk.Button performance_button;
-        private Gtk.SpinButton cpu_spin;
-        private Gtk.SpinButton gpu_spin;
-        private Gtk.Button apply_fans_button;
+        private Gtk.Button fan_auto_button;
+        private Gtk.Button fan_max_button;
 
         public MainWindow (Gtk.Application app, AppConfig config) {
             Object(application: app, title: APP_NAME, default_width: 760, default_height: 520);
@@ -123,21 +123,24 @@ namespace VictusControl {
 
         private Gtk.Widget build_fan_frame () {
             fan_support_label = create_value_label("");
-            cpu_spin = new Gtk.SpinButton.with_range(0, 10000, 100);
-            gpu_spin = new Gtk.SpinButton.with_range(0, 10000, 100);
-            apply_fans_button = new Gtk.Button.with_label("Apply Fan Levels");
-            apply_fans_button.clicked.connect(() => apply_fan_levels());
+            fan_mode_label = create_value_label("");
+            fan_auto_button = new Gtk.Button.with_label("Auto");
+            fan_max_button = new Gtk.Button.with_label("Max");
+            fan_auto_button.clicked.connect(() => set_fan_mode("auto"));
+            fan_max_button.clicked.connect(() => set_fan_mode("max"));
 
-            var row = new Gtk.Box(Gtk.Orientation.HORIZONTAL, 12);
-            row.append(new Gtk.Label("CPU"));
-            row.append(cpu_spin);
-            row.append(new Gtk.Label("GPU"));
-            row.append(gpu_spin);
-            row.append(apply_fans_button);
+            var mode_row = new Gtk.Box(Gtk.Orientation.HORIZONTAL, 12);
+            mode_row.append(new Gtk.Label("Current mode"));
+            mode_row.append(fan_mode_label);
+
+            var buttons_row = new Gtk.Box(Gtk.Orientation.HORIZONTAL, 12);
+            buttons_row.append(fan_auto_button);
+            buttons_row.append(fan_max_button);
 
             var box = new Gtk.Box(Gtk.Orientation.VERTICAL, 12);
             box.append(fan_support_label);
-            box.append(row);
+            box.append(mode_row);
+            box.append(buttons_row);
             return wrap_frame("Direct Fan Control", box);
         }
 
@@ -177,21 +180,21 @@ namespace VictusControl {
                 max_temp_label.label = format_metric(snapshot.max_temp_c, "°C");
                 fan1_label.label = format_metric(snapshot.fan1_rpm, " RPM");
                 fan2_label.label = format_metric(snapshot.fan2_rpm, " RPM");
-                fan_support_label.label = snapshot.can_direct_fan_control
-                    ? "Direct fan control is enabled for this machine."
+                fan_mode_label.label = format_fan_mode(snapshot.active_fan_mode);
+                fan_support_label.label = snapshot.can_set_fan_mode
+                    ? "Fan mode control is available. Use Auto for firmware control or Max for forced full speed."
                     : snapshot.fan_control_reason;
                 auto_policy_switch.sensitive = true;
                 auto_policy_switch.active = snapshot.auto_policy_enabled;
-                cpu_spin.sensitive = snapshot.can_direct_fan_control;
-                gpu_spin.sensitive = snapshot.can_direct_fan_control;
-                apply_fans_button.sensitive = snapshot.can_direct_fan_control;
+                fan_auto_button.sensitive = snapshot.can_set_fan_mode && snapshot.active_fan_mode != "auto";
+                fan_max_button.sensitive = snapshot.can_set_fan_mode && snapshot.active_fan_mode != "max";
             } catch (Error error) {
                 status_label.label = "Helper unavailable";
                 fan_support_label.label = error.message;
+                fan_mode_label.label = "unavailable";
                 auto_policy_switch.sensitive = false;
-                cpu_spin.sensitive = false;
-                gpu_spin.sensitive = false;
-                apply_fans_button.sensitive = false;
+                fan_auto_button.sensitive = false;
+                fan_max_button.sensitive = false;
                 client = null;
             }
         }
@@ -216,10 +219,11 @@ namespace VictusControl {
             }
         }
 
-        private void apply_fan_levels () {
+        private void set_fan_mode (string mode) {
             try {
                 ensure_client();
-                client.set_fan_levels((uint16) cpu_spin.get_value_as_int(), (uint16) gpu_spin.get_value_as_int());
+                client.set_fan_mode(mode);
+                refresh_snapshot();
             } catch (Error error) {
                 status_label.label = error.message;
             }
@@ -233,6 +237,19 @@ namespace VictusControl {
 
         private string format_metric (int value, string suffix) {
             return value >= 0 ? "%d%s".printf(value, suffix) : "unavailable";
+        }
+
+        private string format_fan_mode (string mode) {
+            switch (mode) {
+            case "auto":
+                return "Auto";
+            case "max":
+                return "Max";
+            case "unavailable":
+                return "Unavailable";
+            default:
+                return "Unknown";
+            }
         }
 
     }

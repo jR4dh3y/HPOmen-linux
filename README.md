@@ -40,11 +40,12 @@ Launch the monitor window or tray:
 
 - Reads DMI identity, hwmon temperatures, platform profile state, and HP WMI inventory.
 - Exposes profile switching and a temperature-driven auto-policy mode in the helper.
-- Shows direct fan control in the UI as unavailable until a validated write path is discovered and persisted.
+- Exposes validated HP fan modes where available: `Auto` and `Max`.
+- Reports granular fan-level control as unavailable unless a per-host write path is validated.
 - Keeps tray and GTK4 window as separate processes to avoid the GTK3/GTK4 AppIndicator conflict.
 
 ## Current Limitations
 
-- Direct fan writes are intentionally blocked. The helper returns an unsupported error for manual fan mode and fan level requests.
+- Manual/granular fan level writes are still blocked. The helper only supports validated fan modes such as `auto` and `max`.
 - The helper currently exports the D-Bus API without a finished polkit authorization gate. The policy file and system-bus install assets are included, but the per-call authorization hardening is still a follow-up item.
 - If `hp_wmi` is not loaded on the host, fan RPM and platform profile controls will appear unavailable and the app will fall back to temperature-only monitoring.

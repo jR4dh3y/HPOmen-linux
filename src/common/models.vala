@@ -13,8 +13,10 @@ namespace VictusControl {
         public bool can_read_rpm { get; set; default = false; }
         public bool can_read_temp { get; set; default = false; }
         public bool can_set_profile { get; set; default = false; }
+        public bool can_set_fan_mode { get; set; default = false; }
         public bool can_direct_fan_control { get; set; default = false; }
         public bool auto_policy_enabled { get; set; default = false; }
+        public string active_fan_mode { get; set; default = "unknown"; }
         public string fan_control_reason { get; set; default = ""; }
         public string helper_state { get; set; default = "disconnected"; }
 
@@ -33,8 +35,10 @@ namespace VictusControl {
             dict.insert("can_read_rpm", new Variant.boolean(can_read_rpm));
             dict.insert("can_read_temp", new Variant.boolean(can_read_temp));
             dict.insert("can_set_profile", new Variant.boolean(can_set_profile));
+            dict.insert("can_set_fan_mode", new Variant.boolean(can_set_fan_mode));
             dict.insert("can_direct_fan_control", new Variant.boolean(can_direct_fan_control));
             dict.insert("auto_policy_enabled", new Variant.boolean(auto_policy_enabled));
+            dict.insert("active_fan_mode", new Variant.string(active_fan_mode));
             dict.insert("fan_control_reason", new Variant.string(fan_control_reason));
             dict.insert("helper_state", new Variant.string(helper_state));
             return dict;
@@ -59,8 +63,10 @@ namespace VictusControl {
             object.set_boolean_member("can_read_rpm", can_read_rpm);
             object.set_boolean_member("can_read_temp", can_read_temp);
             object.set_boolean_member("can_set_profile", can_set_profile);
+            object.set_boolean_member("can_set_fan_mode", can_set_fan_mode);
             object.set_boolean_member("can_direct_fan_control", can_direct_fan_control);
             object.set_boolean_member("auto_policy_enabled", auto_policy_enabled);
+            object.set_string_member("active_fan_mode", active_fan_mode);
             object.set_string_member("fan_control_reason", fan_control_reason);
             object.set_string_member("helper_state", helper_state);
             return object;
@@ -81,8 +87,10 @@ namespace VictusControl {
             snapshot.can_read_rpm = lookup_bool(dict, "can_read_rpm", false);
             snapshot.can_read_temp = lookup_bool(dict, "can_read_temp", false);
             snapshot.can_set_profile = lookup_bool(dict, "can_set_profile", false);
+            snapshot.can_set_fan_mode = lookup_bool(dict, "can_set_fan_mode", false);
             snapshot.can_direct_fan_control = lookup_bool(dict, "can_direct_fan_control", false);
             snapshot.auto_policy_enabled = lookup_bool(dict, "auto_policy_enabled", false);
+            snapshot.active_fan_mode = lookup_string(dict, "active_fan_mode", "unknown");
             snapshot.fan_control_reason = lookup_string(dict, "fan_control_reason", "");
             snapshot.helper_state = lookup_string(dict, "helper_state", "disconnected");
             return snapshot;

@@ -1,5 +1,8 @@
 namespace VictusControl {
     public class HardwareBackend : Object {
+        private const string FAN_MODE_AUTO = "auto";
+        private const string FAN_MODE_MAX = "max";
+
         public string[] get_platform_profiles () {
             var raw = Fs.read_text(PLATFORM_PROFILE_CHOICES_PATH);
             return raw != null ? raw.split(" ") : new string[0];
@@ -25,10 +28,14 @@ namespace VictusControl {
             snapshot.auto_policy_enabled = auto_policy_enabled;
 
             read_fan_speeds(snapshot);
+            read_fan_mode(snapshot);
             read_temperatures(snapshot);
 
             string reason;
             snapshot.can_direct_fan_control = get_direct_fan_capability(out reason);
+            if (snapshot.can_set_fan_mode && !snapshot.can_direct_fan_control) {
+                reason = "Auto and max fan modes are available on this machine. Granular fan levels are not validated.";
+            }
             snapshot.fan_control_reason = reason;
 
             return snapshot;
@@ -43,6 +50,32 @@ namespace VictusControl {
                 }
             }
             throw new ControlError.INVALID_ARGUMENT("Unsupported platform profile: %s".printf(requested));
+        }
+
+        public void set_fan_mode (string requested) throws Error {
+            var hwmon_dir = locate_hp_hwmon_dir();
+            if (hwmon_dir == null) {
+                throw new ControlError.UNSUPPORTED("HP fan mode control is unavailable on this host.");
+            }
+
+            string value;
+            switch (requested) {
+            case FAN_MODE_AUTO:
+                value = "2";
+                break;
+            case FAN_MODE_MAX:
+                value = "0";
+                break;
+            default:
+                throw new ControlError.INVALID_ARGUMENT("Unsupported fan mode: %s".printf(requested));
+            }
+
+            var path = Path.build_filename(hwmon_dir, "pwm1_enable");
+            if (!Fs.exists(path)) {
+                throw new ControlError.UNSUPPORTED("HP fan mode control is unavailable on this host.");
+            }
+
+            Fs.write_text(path, value);
         }
 
         public string choose_profile_for_policy (string requested) {
@@ -75,6 +108,35 @@ namespace VictusControl {
             snapshot.fan1_rpm = Fs.read_int(Path.build_filename(hwmon_dir, "fan1_input"));
             snapshot.fan2_rpm = Fs.read_int(Path.build_filename(hwmon_dir, "fan2_input"));
             snapshot.can_read_rpm = snapshot.fan1_rpm >= 0 || snapshot.fan2_rpm >= 0;
+        }
+
+        private void read_fan_mode (Snapshot snapshot) {
+            var hwmon_dir = locate_hp_hwmon_dir();
+            if (hwmon_dir == null) {
+                snapshot.can_set_fan_mode = false;
+                snapshot.active_fan_mode = "unavailable";
+                return;
+            }
+
+            var path = Path.build_filename(hwmon_dir, "pwm1_enable");
+            if (!Fs.exists(path)) {
+                snapshot.can_set_fan_mode = false;
+                snapshot.active_fan_mode = "unavailable";
+                return;
+            }
+
+            snapshot.can_set_fan_mode = true;
+            switch (Fs.read_int(path)) {
+            case 2:
+                snapshot.active_fan_mode = FAN_MODE_AUTO;
+                break;
+            case 0:
+                snapshot.active_fan_mode = FAN_MODE_MAX;
+                break;
+            default:
+                snapshot.active_fan_mode = "unknown";
+                break;
+            }
         }
 
         private void read_temperatures (Snapshot snapshot) {
