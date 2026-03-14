@@ -64,7 +64,7 @@ executable(
     'app/controller.vala',
     'app/widgets/widget_helpers.vala',
     'app/widgets/hero_section.vala',
-    'app/widgets/overview_section.vala',
+    
     'app/widgets/thermal_section.vala',
     'app/widgets/profile_section.vala',
     'app/widgets/fan_section.vala',
