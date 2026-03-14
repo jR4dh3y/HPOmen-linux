@@ -60,6 +60,7 @@ src/
 │   ├── main.vala        #   Entry point
 │   ├── config.vala      #   User config (INI file)
 │   ├── style.css        #   External stylesheet
+│   ├── css_loader.vala  #   CSS loading (installed path + inline fallback)
 │   ├── controller.vala  #   D-Bus + polling + action dispatch
 │   └── widgets/         #   Pure UI components (no D-Bus)
 │       ├── widget_helpers.vala   # Reusable widget factories

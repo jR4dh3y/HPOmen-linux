@@ -59,6 +59,7 @@ executable(
   'victus-control',
   common_sources + files(
     'app/config.vala',
+    'app/css_loader.vala',
     'app/controller.vala',
     'app/widgets/widget_helpers.vala',
     'app/widgets/hero_section.vala',

@@ -20,7 +20,7 @@ namespace VictusControl {
             Object(application: app, title: APP_NAME, default_width: 960, default_height: 720);
             this.config = config;
 
-            load_css();
+            CssLoader.load();
 
             /* ---- controller ---- */
             controller = new AppController(config);
@@ -86,106 +86,6 @@ namespace VictusControl {
 
         private void on_action_failed (string error_message) {
             hero.show_error(error_message);
-        }
-
-        /* ---- CSS ---- */
-
-        private void load_css () {
-            var provider = new Gtk.CssProvider();
-            var css_path = Path.build_filename(
-                Path.get_dirname(Environment.find_program_in_path("victus-control") ?? ""),
-                "..", "share", "victus-control", "style.css"
-            );
-
-            /* Try installed path first, then fall back to source-tree path. */
-            if (Fs.exists(css_path)) {
-                provider.load_from_path(css_path);
-            } else {
-                /* Inline fallback so the app works without an install step. */
-                provider.load_from_string("""
-                    window {
-                        background:
-                            linear-gradient(180deg, #11161d 0%, #191f29 42%, #0d1117 100%);
-                        color: #f3efe5;
-                    }
-                    .app-shell { min-height: 680px; }
-                    .hero-card, .section-card, .metric-card, .inline-card, .accent-panel {
-                        border-radius: 20px;
-                    }
-                    .hero-card, .section-card {
-                        background: rgba(12, 16, 23, 0.82);
-                        border: 1px solid rgba(255, 255, 255, 0.08);
-                        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.28);
-                        padding: 24px;
-                    }
-                    .hero-card {
-                        background:
-                            radial-gradient(circle at top right, rgba(249, 115, 22, 0.18), transparent 28%),
-                            linear-gradient(135deg, rgba(123, 31, 32, 0.34), rgba(15, 18, 24, 0.96));
-                    }
-                    .accent-panel, .metric-card, .inline-card {
-                        background: rgba(255, 255, 255, 0.04);
-                        border: 1px solid rgba(255, 255, 255, 0.08);
-                        padding: 16px;
-                    }
-                    .hero-title {
-                        font-family: "IBM Plex Sans", sans-serif;
-                        font-size: 30px; font-weight: 700; letter-spacing: 0.02em;
-                    }
-                    .hero-subtitle, .section-subtitle, .card-subtitle, .muted-text {
-                        color: rgba(243, 239, 229, 0.72);
-                    }
-                    .section-title {
-                        font-family: "IBM Plex Sans", sans-serif;
-                        font-size: 20px; font-weight: 700; letter-spacing: 0.04em;
-                    }
-                    .card-title, .panel-title, .eyebrow {
-                        color: rgba(243, 239, 229, 0.62);
-                        text-transform: uppercase; letter-spacing: 0.14em;
-                        font-size: 11px; font-weight: 700;
-                    }
-                    .panel-value {
-                        font-family: "JetBrains Mono", monospace;
-                        font-size: 13px; color: #ffd7a8;
-                    }
-                    .metric-value {
-                        font-family: "JetBrains Mono", monospace;
-                        font-size: 28px; font-weight: 700; color: #fff7ea;
-                    }
-                    .status-pill {
-                        background: rgba(255, 164, 77, 0.18); color: #ffd7a8;
-                        padding: 6px 12px; border-radius: 999px;
-                        font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
-                    }
-                    .pill-button {
-                        min-height: 42px; padding: 0 16px; border-radius: 999px;
-                        background: rgba(255, 255, 255, 0.06); color: #f3efe5;
-                        border: 1px solid rgba(255, 255, 255, 0.08); font-weight: 700;
-                    }
-                    .pill-button:hover { background: rgba(255, 255, 255, 0.12); }
-                    .active-pill {
-                        background: linear-gradient(90deg, #ff9f43, #ef4444);
-                        color: #130d09; border-color: transparent;
-                    }
-                    .thermal-bar trough {
-                        background: rgba(255, 255, 255, 0.06);
-                        border-radius: 999px; min-height: 8px;
-                    }
-                    .thermal-bar progress {
-                        background: linear-gradient(90deg, #f59e0b, #ef4444);
-                        border-radius: 999px; min-height: 8px;
-                    }
-                """);
-            }
-
-            var display = Gdk.Display.get_default();
-            if (display != null) {
-                Gtk.StyleContext.add_provider_for_display(
-                    display,
-                    provider,
-                    Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
-                );
-            }
         }
     }
 }
