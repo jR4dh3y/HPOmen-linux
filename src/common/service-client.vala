@@ -19,6 +19,10 @@ namespace VictusControl {
             return Snapshot.from_variant_dict(result.get_child_value(0));
         }
 
+        public bool set_hardware_profile (string profile) throws Error {
+            return call_bool("SetHardwareProfile", new Variant("(s)", profile));
+        }
+
         public bool set_platform_profile (string profile) throws Error {
             return call_bool("SetPlatformProfile", new Variant("(s)", profile));
         }

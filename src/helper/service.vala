@@ -28,7 +28,7 @@ namespace VictusControl {
 
         private void apply_once () {
             var snapshot = backend.read_snapshot(true);
-            if (!snapshot.can_set_profile || snapshot.max_temp_c < 0) {
+            if (!snapshot.can_set_hardware_profile || snapshot.max_temp_c < 0) {
                 return;
             }
             string target;
@@ -40,7 +40,7 @@ namespace VictusControl {
                 target = "quiet";
             }
             try {
-                backend.set_platform_profile(backend.choose_profile_for_policy(target));
+                backend.set_hardware_profile(backend.choose_hardware_profile_for_policy(target));
             } catch (Error error) {
                 warning("Auto policy failed: %s", error.message);
             }
@@ -50,6 +50,7 @@ namespace VictusControl {
     [DBus (name = "io.github.radhey.VictusControl1")]
     public interface ControlApi : Object {
         public abstract HashTable<string, Variant> get_snapshot () throws Error;
+        public abstract bool set_hardware_profile (string profile) throws Error;
         public abstract bool set_platform_profile (string profile) throws Error;
         public abstract bool set_auto_policy (bool enabled) throws Error;
         public abstract bool set_fan_mode (string mode) throws Error;
@@ -74,10 +75,14 @@ namespace VictusControl {
             return backend.read_snapshot(auto_policy.enabled).to_variant_dict();
         }
 
-        public bool set_platform_profile (string profile) throws Error {
+        public bool set_hardware_profile (string profile) throws Error {
             auto_policy.set_active(false);
-            backend.set_platform_profile(backend.choose_profile_for_policy(profile));
+            backend.set_hardware_profile(backend.choose_hardware_profile_for_policy(profile));
             return true;
+        }
+
+        public bool set_platform_profile (string profile) throws Error {
+            return set_hardware_profile(profile);
         }
 
         public bool set_auto_policy (bool enabled) throws Error {

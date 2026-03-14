@@ -31,6 +31,7 @@ namespace VictusControl {
 
             menu.append(new Gtk.SeparatorMenuItem());
 
+            menu.append(profile_item("Cool", "cool"));
             menu.append(profile_item("Quiet", "quiet"));
             menu.append(profile_item("Balanced", "balanced"));
             menu.append(profile_item("Performance", "performance"));
@@ -63,7 +64,7 @@ namespace VictusControl {
 
         private Gtk.MenuItem profile_item (string label, string profile) {
             var item = new Gtk.MenuItem.with_label(label);
-            item.activate.connect(() => try_call(() => client.set_platform_profile(profile)));
+            item.activate.connect(() => try_call(() => client.set_hardware_profile(profile)));
             return item;
         }
 
@@ -99,10 +100,25 @@ namespace VictusControl {
         private string build_summary (Snapshot snapshot) {
             return "%s | %s | %s/%s RPM".printf(
                 snapshot.max_temp_c >= 0 ? "%dC".printf(snapshot.max_temp_c) : "Temp n/a",
-                snapshot.active_profile,
+                format_profile(snapshot.active_hardware_profile),
                 snapshot.fan1_rpm >= 0 ? "%d".printf(snapshot.fan1_rpm) : "n/a",
                 snapshot.fan2_rpm >= 0 ? "%d".printf(snapshot.fan2_rpm) : "n/a"
             );
+        }
+
+        private string format_profile (string profile) {
+            switch (profile.down()) {
+            case "cool":
+                return "Cool";
+            case "quiet":
+                return "Quiet";
+            case "balanced":
+                return "Balanced";
+            case "performance":
+                return "Performance";
+            default:
+                return profile != "" ? profile : "Unavailable";
+            }
         }
 
         private delegate bool BoolCall () throws Error;

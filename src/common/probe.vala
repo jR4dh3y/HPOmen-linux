@@ -10,10 +10,21 @@ namespace VictusControl {
 
             var profiles = new Json.Array();
             var backend = new HardwareBackend();
-            foreach (var profile in backend.get_platform_profiles()) {
+            foreach (var profile in backend.get_hardware_profiles()) {
                 profiles.add_string_element(profile);
             }
-            root.set_array_member("platform_profiles", profiles);
+            root.set_array_member("hardware_profiles", profiles);
+            var legacy_profiles = new Json.Array();
+            foreach (var profile in backend.get_hardware_profiles()) {
+                legacy_profiles.add_string_element(profile);
+            }
+            root.set_array_member("platform_profiles", legacy_profiles);
+
+            var hardware_profile = new Json.Object();
+            hardware_profile.set_string_member("path", HP_WMI_HARDWARE_PROFILE_PATH);
+            hardware_profile.set_string_member("choices_path", HP_WMI_HARDWARE_PROFILE_CHOICES_PATH);
+            hardware_profile.set_string_member("active", backend.get_active_hardware_profile());
+            root.set_object_member("hp_wmi_hardware_profile", hardware_profile);
 
             var wmi_devices = new Json.Array();
             foreach (var path in Fs.list_directories(WMI_DEVICES_PATH)) {

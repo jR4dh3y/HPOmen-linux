@@ -27,6 +27,7 @@ namespace VictusControl {
 
         private Gtk.Label profile_hint_label;
         private Gtk.Switch auto_policy_switch;
+        private Gtk.Button cool_button;
         private Gtk.Button quiet_button;
         private Gtk.Button balanced_button;
         private Gtk.Button performance_button;
@@ -109,7 +110,7 @@ namespace VictusControl {
             accent_box.halign = Gtk.Align.END;
             accent_box.valign = Gtk.Align.START;
             accent_box.add_css_class("accent-panel");
-            accent_box.append(create_panel_value("Profiles", "Quiet / Balanced / Performance"));
+            accent_box.append(create_panel_value("HW Profiles", "Cool / Quiet / Balanced / Performance"));
             accent_box.append(create_panel_value("Fan modes", "Auto / Max"));
 
             var box = new Gtk.Box(Gtk.Orientation.HORIZONTAL, 24);
@@ -132,10 +133,10 @@ namespace VictusControl {
             grid.attach(create_info_card("Product", product_label), 0, 0, 1, 1);
             grid.attach(create_info_card("Board", board_label), 1, 0, 1, 1);
             grid.attach(create_info_card("BIOS", bios_label), 2, 0, 1, 1);
-            grid.attach(create_info_card("Active profile", profile_label), 0, 1, 1, 1);
-            grid.attach(create_info_card("Available profiles", choices_label), 1, 1, 2, 1);
+            grid.attach(create_info_card("Active HW profile", profile_label), 0, 1, 1, 1);
+            grid.attach(create_info_card("Available HW profiles", choices_label), 1, 1, 2, 1);
 
-            return wrap_section("System Overview", "Identity, firmware, and Linux platform profile state.", grid);
+            return wrap_section("System Overview", "Identity, firmware, and HP WMI hardware profile state.", grid);
         }
 
         private Gtk.Widget build_thermal_section () {
@@ -163,9 +164,11 @@ namespace VictusControl {
         }
 
         private Gtk.Widget build_actions_section () {
+            cool_button = create_action_button("Cool");
             quiet_button = create_action_button("Quiet");
             balanced_button = create_action_button("Balanced");
             performance_button = create_action_button("Performance");
+            cool_button.clicked.connect(() => set_profile("cool"));
             quiet_button.clicked.connect(() => set_profile("quiet"));
             balanced_button.clicked.connect(() => set_profile("balanced"));
             performance_button.clicked.connect(() => set_profile("performance"));
@@ -183,6 +186,7 @@ namespace VictusControl {
             });
 
             var button_row = new Gtk.Box(Gtk.Orientation.HORIZONTAL, 12);
+            button_row.append(cool_button);
             button_row.append(quiet_button);
             button_row.append(balanced_button);
             button_row.append(performance_button);
@@ -201,7 +205,7 @@ namespace VictusControl {
             action_box.append(profile_hint_label);
             action_box.append(switch_row);
 
-            return wrap_section("Performance Controls", "Capability-aware profile switching backed by the helper service.", action_box);
+            return wrap_section("Performance Controls", "Capability-aware HP WMI hardware profile switching backed by the helper service.", action_box);
         }
 
         private Gtk.Widget build_fan_section () {
@@ -351,8 +355,8 @@ namespace VictusControl {
                 product_label.label = fallback_text(snapshot.product_name);
                 board_label.label = fallback_text(snapshot.board_name);
                 bios_label.label = fallback_text(snapshot.bios_version);
-                profile_label.label = fallback_text(format_profile(snapshot.active_profile));
-                choices_label.label = format_profiles(snapshot.available_profiles);
+                profile_label.label = fallback_text(format_profile(snapshot.active_hardware_profile));
+                choices_label.label = format_profiles(snapshot.available_hardware_profiles);
 
                 update_temperature_card(cpu_temp_label, cpu_temp_bar, snapshot.cpu_temp_c);
                 update_temperature_card(gpu_temp_label, gpu_temp_bar, snapshot.gpu_temp_c);
@@ -368,9 +372,9 @@ namespace VictusControl {
                 auto_policy_switch.active = snapshot.auto_policy_enabled;
                 updating_auto_policy = false;
 
-                profile_hint_label.label = snapshot.can_set_profile
-                    ? "Choose a platform profile or leave auto policy enabled to let the helper react to thermals."
-                    : "Platform profile switching is unavailable on this host.";
+                profile_hint_label.label = snapshot.can_set_hardware_profile
+                    ? "Choose an HP WMI hardware profile or leave auto policy enabled to let the helper react to thermals."
+                    : "HP WMI hardware profile switching is unavailable on this host.";
 
                 fan_mode_label.label = format_fan_mode(snapshot.active_fan_mode);
                 fan_support_label.label = snapshot.can_set_fan_mode
@@ -405,7 +409,7 @@ namespace VictusControl {
                 auto_policy_switch.sensitive = false;
                 auto_policy_switch.active = false;
                 updating_auto_policy = false;
-                profile_hint_label.label = "Start victusd to enable profile controls.";
+                profile_hint_label.label = "Start victusd to enable hardware-profile controls.";
 
                 fan_support_label.label = error.message;
                 fan_mode_label.label = "Unavailable";
@@ -419,16 +423,18 @@ namespace VictusControl {
         }
 
         private void update_profile_buttons (Snapshot snapshot) {
-            var has_profiles = snapshot.can_set_profile && snapshot.available_profiles.length > 0;
+            var has_profiles = snapshot.can_set_hardware_profile && snapshot.available_hardware_profiles.length > 0;
             set_profile_controls_available(has_profiles);
 
-            var active = snapshot.active_profile.down();
+            var active = snapshot.active_hardware_profile.down();
+            update_profile_button_state(cool_button, has_profile(snapshot, "cool"), active == "cool");
             update_profile_button_state(quiet_button, has_profile(snapshot, "quiet"), active == "quiet");
             update_profile_button_state(balanced_button, has_profile(snapshot, "balanced"), active == "balanced");
             update_profile_button_state(performance_button, has_profile(snapshot, "performance"), active == "performance");
         }
 
         private void set_profile_controls_available (bool available) {
+            cool_button.sensitive = available;
             quiet_button.sensitive = available;
             balanced_button.sensitive = available;
             performance_button.sensitive = available;
@@ -461,7 +467,7 @@ namespace VictusControl {
         }
 
         private bool has_profile (Snapshot snapshot, string name) {
-            foreach (var profile in snapshot.available_profiles) {
+            foreach (var profile in snapshot.available_hardware_profiles) {
                 if (profile.down() == name) {
                     return true;
                 }
@@ -472,7 +478,7 @@ namespace VictusControl {
         private void set_profile (string profile) {
             try {
                 ensure_client();
-                client.set_platform_profile(profile);
+                client.set_hardware_profile(profile);
                 refresh_snapshot();
             } catch (Error error) {
                 status_label.label = "Error";
@@ -512,9 +518,9 @@ namespace VictusControl {
             var temp_summary = snapshot.max_temp_c >= 0
                 ? "Peak %d°C".printf(snapshot.max_temp_c)
                 : "Peak temperature unavailable";
-            var profile_summary = snapshot.active_profile != ""
-                ? "Profile %s".printf(format_profile(snapshot.active_profile))
-                : "Profile unavailable";
+            var profile_summary = snapshot.active_hardware_profile != ""
+                ? "Hardware profile %s".printf(format_profile(snapshot.active_hardware_profile))
+                : "Hardware profile unavailable";
             return "%s. %s.".printf(profile_summary, temp_summary);
         }
 
@@ -556,6 +562,8 @@ namespace VictusControl {
 
         private string format_profile (string profile) {
             switch (profile.down()) {
+            case "cool":
+                return "Cool";
             case "quiet":
                 return "Quiet";
             case "balanced":

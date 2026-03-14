@@ -6,10 +6,11 @@ namespace VictusControl {
     public const string INTERFACE_NAME = "io.github.radhey.VictusControl1";
     public const string POLKIT_ACTION_ID = "io.github.radhey.VictusControl1.manage";
 
-    public const string PLATFORM_PROFILE_PATH = "/sys/firmware/acpi/platform_profile";
-    public const string PLATFORM_PROFILE_CHOICES_PATH = "/sys/firmware/acpi/platform_profile_choices";
     public const string HP_WMI_PATH = "/sys/devices/platform/hp-wmi";
     public const string HP_WMI_HWMON_PATH = "/sys/devices/platform/hp-wmi/hwmon";
+    public const string HP_WMI_PLATFORM_PROFILE_ROOT_PATH = "/sys/devices/platform/hp-wmi/platform-profile/platform-profile-0";
+    public const string HP_WMI_HARDWARE_PROFILE_PATH = "/sys/devices/platform/hp-wmi/platform-profile/platform-profile-0/profile";
+    public const string HP_WMI_HARDWARE_PROFILE_CHOICES_PATH = "/sys/devices/platform/hp-wmi/platform-profile/platform-profile-0/choices";
     public const string WMI_DEVICES_PATH = "/sys/bus/wmi/devices";
     public const string DMI_PRODUCT_NAME_PATH = "/sys/class/dmi/id/product_name";
     public const string DMI_BOARD_NAME_PATH = "/sys/class/dmi/id/board_name";

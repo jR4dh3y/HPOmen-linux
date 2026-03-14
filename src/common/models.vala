@@ -3,6 +3,9 @@ namespace VictusControl {
         public string product_name { get; set; default = ""; }
         public string board_name { get; set; default = ""; }
         public string bios_version { get; set; default = ""; }
+        public string active_hardware_profile { get; set; default = ""; }
+        public string[] available_hardware_profiles { get; set; default = {}; }
+        public bool can_set_hardware_profile { get; set; default = false; }
         public string active_profile { get; set; default = ""; }
         public string[] available_profiles { get; set; default = {}; }
         public int fan1_rpm { get; set; default = -1; }
@@ -25,6 +28,9 @@ namespace VictusControl {
             dict.insert("product_name", new Variant.string(product_name));
             dict.insert("board_name", new Variant.string(board_name));
             dict.insert("bios_version", new Variant.string(bios_version));
+            dict.insert("active_hardware_profile", new Variant.string(active_hardware_profile));
+            dict.insert("available_hardware_profiles", new Variant.strv(available_hardware_profiles));
+            dict.insert("can_set_hardware_profile", new Variant.boolean(can_set_hardware_profile));
             dict.insert("active_profile", new Variant.string(active_profile));
             dict.insert("available_profiles", new Variant.strv(available_profiles));
             dict.insert("fan1_rpm", new Variant.int32(fan1_rpm));
@@ -49,6 +55,13 @@ namespace VictusControl {
             object.set_string_member("product_name", product_name);
             object.set_string_member("board_name", board_name);
             object.set_string_member("bios_version", bios_version);
+            object.set_string_member("active_hardware_profile", active_hardware_profile);
+            var hardware_profiles = new Json.Array();
+            foreach (var profile in available_hardware_profiles) {
+                hardware_profiles.add_string_element(profile);
+            }
+            object.set_array_member("available_hardware_profiles", hardware_profiles);
+            object.set_boolean_member("can_set_hardware_profile", can_set_hardware_profile);
             object.set_string_member("active_profile", active_profile);
             var profiles = new Json.Array();
             foreach (var profile in available_profiles) {
@@ -77,8 +90,23 @@ namespace VictusControl {
             snapshot.product_name = lookup_string(dict, "product_name", "");
             snapshot.board_name = lookup_string(dict, "board_name", "");
             snapshot.bios_version = lookup_string(dict, "bios_version", "");
-            snapshot.active_profile = lookup_string(dict, "active_profile", "");
-            snapshot.available_profiles = lookup_strv(dict, "available_profiles");
+            snapshot.active_hardware_profile = lookup_string(
+                dict,
+                "active_hardware_profile",
+                lookup_string(dict, "active_profile", "")
+            );
+            snapshot.available_hardware_profiles = lookup_strv_with_fallback(
+                dict,
+                "available_hardware_profiles",
+                "available_profiles"
+            );
+            snapshot.can_set_hardware_profile = lookup_bool(
+                dict,
+                "can_set_hardware_profile",
+                lookup_bool(dict, "can_set_profile", false)
+            );
+            snapshot.active_profile = snapshot.active_hardware_profile;
+            snapshot.available_profiles = snapshot.available_hardware_profiles;
             snapshot.fan1_rpm = lookup_int(dict, "fan1_rpm", -1);
             snapshot.fan2_rpm = lookup_int(dict, "fan2_rpm", -1);
             snapshot.cpu_temp_c = lookup_int(dict, "cpu_temp_c", -1);
@@ -86,7 +114,7 @@ namespace VictusControl {
             snapshot.max_temp_c = lookup_int(dict, "max_temp_c", -1);
             snapshot.can_read_rpm = lookup_bool(dict, "can_read_rpm", false);
             snapshot.can_read_temp = lookup_bool(dict, "can_read_temp", false);
-            snapshot.can_set_profile = lookup_bool(dict, "can_set_profile", false);
+            snapshot.can_set_profile = snapshot.can_set_hardware_profile;
             snapshot.can_set_fan_mode = lookup_bool(dict, "can_set_fan_mode", false);
             snapshot.can_direct_fan_control = lookup_bool(dict, "can_direct_fan_control", false);
             snapshot.auto_policy_enabled = lookup_bool(dict, "auto_policy_enabled", false);
@@ -114,6 +142,11 @@ namespace VictusControl {
         private static string[] lookup_strv (Variant dict, string key) {
             var value = dict.lookup_value(key, new VariantType("as"));
             return value != null ? value.dup_strv() : new string[0];
+        }
+
+        private static string[] lookup_strv_with_fallback (Variant dict, string key, string fallback_key) {
+            var values = lookup_strv(dict, key);
+            return values.length > 0 ? values : lookup_strv(dict, fallback_key);
         }
     }
 }

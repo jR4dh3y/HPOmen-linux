@@ -6,6 +6,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BUILD_DIR="${ROOT_DIR}/build"
 PREFIX="${PREFIX:-/usr}"
 CONTROL_BIN="${PREFIX}/bin/victus-control"
+TRAY_BIN="${PREFIX}/bin/victus-tray"
 HELPER_BIN="${PREFIX}/bin/victusd"
 SERVICE_NAME="io.github.radhey.VictusControl1"
 OBJECT_PATH="/io/github/radhey/VictusControl1"
@@ -79,6 +80,25 @@ start_helper() {
   exit 1
 }
 
+start_tray() {
+  if pgrep -x victus-tray >/dev/null 2>&1; then
+    log "Tray is already running"
+    return
+  fi
+
+  log "Starting tray companion"
+  "${TRAY_BIN}" >/tmp/victus-tray.log 2>&1 &
+  sleep 1
+
+  if ! pgrep -x victus-tray >/dev/null 2>&1; then
+    log "Tray process exited early. Recent log output:"
+    if [[ -f /tmp/victus-tray.log ]]; then
+      tail -n 40 /tmp/victus-tray.log
+    fi
+    exit 1
+  fi
+}
+
 launch_gui() {
   log "Launching GUI"
   exec "${CONTROL_BIN}"
@@ -93,6 +113,7 @@ main() {
   install_project
   reload_system_bus
   start_helper
+  start_tray
   launch_gui
 }
 

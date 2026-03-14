@@ -3,13 +3,21 @@ namespace VictusControl {
         private const string FAN_MODE_AUTO = "auto";
         private const string FAN_MODE_MAX = "max";
 
-        public string[] get_platform_profiles () {
-            var raw = Fs.read_text(PLATFORM_PROFILE_CHOICES_PATH);
+        public string[] get_hardware_profiles () {
+            var raw = Fs.read_text(HP_WMI_HARDWARE_PROFILE_CHOICES_PATH);
             return raw != null ? raw.split(" ") : new string[0];
         }
 
+        public string[] get_platform_profiles () {
+            return get_hardware_profiles();
+        }
+
+        public string get_active_hardware_profile () {
+            return Fs.read_text(HP_WMI_HARDWARE_PROFILE_PATH) ?? "unknown";
+        }
+
         public string get_active_platform_profile () {
-            return Fs.read_text(PLATFORM_PROFILE_PATH) ?? "unknown";
+            return get_active_hardware_profile();
         }
 
         public bool get_direct_fan_capability (out string reason) {
@@ -21,9 +29,12 @@ namespace VictusControl {
             snapshot.product_name = Fs.read_text(DMI_PRODUCT_NAME_PATH) ?? "";
             snapshot.board_name = Fs.read_text(DMI_BOARD_NAME_PATH) ?? "";
             snapshot.bios_version = Fs.read_text(DMI_BIOS_VERSION_PATH) ?? "";
-            snapshot.active_profile = get_active_platform_profile();
-            snapshot.available_profiles = get_platform_profiles();
-            snapshot.can_set_profile = Fs.exists(PLATFORM_PROFILE_PATH);
+            snapshot.active_hardware_profile = get_active_hardware_profile();
+            snapshot.available_hardware_profiles = get_hardware_profiles();
+            snapshot.can_set_hardware_profile = Fs.exists(HP_WMI_HARDWARE_PROFILE_PATH);
+            snapshot.active_profile = snapshot.active_hardware_profile;
+            snapshot.available_profiles = snapshot.available_hardware_profiles;
+            snapshot.can_set_profile = snapshot.can_set_hardware_profile;
             snapshot.helper_state = "ready";
             snapshot.auto_policy_enabled = auto_policy_enabled;
 
@@ -41,15 +52,19 @@ namespace VictusControl {
             return snapshot;
         }
 
-        public void set_platform_profile (string requested) throws Error {
-            var choices = get_platform_profiles();
+        public void set_hardware_profile (string requested) throws Error {
+            var choices = get_hardware_profiles();
             foreach (var profile in choices) {
                 if (profile == requested) {
-                    Fs.write_text(PLATFORM_PROFILE_PATH, requested);
+                    Fs.write_text(HP_WMI_HARDWARE_PROFILE_PATH, requested);
                     return;
                 }
             }
-            throw new ControlError.INVALID_ARGUMENT("Unsupported platform profile: %s".printf(requested));
+            throw new ControlError.INVALID_ARGUMENT("Unsupported HP WMI hardware profile: %s".printf(requested));
+        }
+
+        public void set_platform_profile (string requested) throws Error {
+            set_hardware_profile(requested);
         }
 
         public void set_fan_mode (string requested) throws Error {
@@ -78,8 +93,8 @@ namespace VictusControl {
             Fs.write_text(path, value);
         }
 
-        public string choose_profile_for_policy (string requested) {
-            var choices = get_platform_profiles();
+        public string choose_hardware_profile_for_policy (string requested) {
+            var choices = get_hardware_profiles();
             foreach (var choice in choices) {
                 if (choice == requested) {
                     return requested;
@@ -96,6 +111,10 @@ namespace VictusControl {
                 }
             }
             return choices.length > 0 ? choices[0] : requested;
+        }
+
+        public string choose_profile_for_policy (string requested) {
+            return choose_hardware_profile_for_policy(requested);
         }
 
         private void read_fan_speeds (Snapshot snapshot) {

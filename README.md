@@ -36,10 +36,13 @@ Launch the monitor window or tray:
 ./build/src/victus-tray
 ```
 
+If you use `run-victus-control.sh`, it should start the helper, tray companion, and monitor window together.
+
 ## Current Behavior
 
-- Reads DMI identity, hwmon temperatures, platform profile state, and HP WMI inventory.
-- Exposes profile switching and a temperature-driven auto-policy mode in the helper.
+- Reads DMI identity, hwmon temperatures, HP WMI hardware-profile state, and HP WMI inventory.
+- Exposes HP WMI hardware-profile switching and a temperature-driven auto-policy mode in the helper.
+- Exposes the four validated HP WMI hardware profiles seen on this host: `cool`, `quiet`, `balanced`, and `performance`.
 - Exposes validated HP fan modes where available: `Auto` and `Max`.
 - Reports granular fan-level control as unavailable unless a per-host write path is validated.
 - Keeps tray and GTK4 window as separate processes to avoid the GTK3/GTK4 AppIndicator conflict.
@@ -48,4 +51,5 @@ Launch the monitor window or tray:
 
 - Manual/granular fan level writes are still blocked. The helper only supports validated fan modes such as `auto` and `max`.
 - The helper currently exports the D-Bus API without a finished polkit authorization gate. The policy file and system-bus install assets are included, but the per-call authorization hardening is still a follow-up item.
-- If `hp_wmi` is not loaded on the host, fan RPM and platform profile controls will appear unavailable and the app will fall back to temperature-only monitoring.
+- If `hp_wmi` is not loaded on the host, fan RPM and HP WMI hardware-profile controls will appear unavailable and the app will fall back to temperature-only monitoring.
+- The tray companion requires a desktop session with a working StatusNotifier/AppIndicator host. If the session has no tray host, `victus-tray` may run without a visible icon.
