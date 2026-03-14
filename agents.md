@@ -49,7 +49,8 @@ src/
 │   ├── formatting.vala  #   Display formatting (shared by GTK4 + GTK3)
 │   ├── models.vala      #   Snapshot data class + serialization
 │   ├── sysfs.vala       #   Filesystem abstraction
-│   ├── hardware.vala    #   Hardware access layer (sysfs read/write)
+│   ├── hardware.vala    #   Hardware access layer (profiles, temps)
+│   ├── fan_backend.vala #   Fan/hwmon operations (mode, RPM, hwmon discovery)
 │   ├── probe.vala       #   Deep WMI inventory + probe state
 │   └── service-client.vala  # D-Bus client proxy
 ├── helper/              # System daemon (runs as root)

@@ -44,7 +44,7 @@ namespace VictusControl {
             }
             root.set_array_member("wmi_devices", wmi_devices);
 
-            var hp_hwmon = HardwareBackend.locate_hp_hwmon_dir();
+            var hp_hwmon = FanBackend.locate_hp_hwmon_dir();
             if (hp_hwmon != null) {
                 var hp = new Json.Object();
                 hp.set_string_member("path", hp_hwmon);
@@ -109,6 +109,6 @@ namespace VictusControl {
             }
         }
 
-        /* locate_hp_hwmon_dir() lives in HardwareBackend — no local copy needed. */
+        /* locate_hp_hwmon_dir() lives in FanBackend — no local copy needed. */
     }
 }

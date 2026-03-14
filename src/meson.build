@@ -13,6 +13,7 @@ common_sources = files(
   'common/constants.vala',
   'common/errors.vala',
   'common/formatting.vala',
+  'common/fan_backend.vala',
   'common/models.vala',
   'common/sysfs.vala',
   'common/hardware.vala',
