@@ -1,6 +1,6 @@
 # HP Victus 15-fb0xxx Linux Power / WMI Notes
 
-Last updated: 2026-03-10
+Last updated: 2026-03-14
 Host: `HP Victus by HP Gaming Laptop 15-fb0xxx`
 Board: `HP 8A3D`
 BIOS: `F.22` dated `2024-07-23`
@@ -417,6 +417,179 @@ Possible outcomes:
 - simple CLI to switch fan modes
 - daemon that integrates with temperature thresholds
 - eventual kernel patch if functionality is stable and useful
+
+## 2026-03-14 Live Validation
+
+After manually loading `hp_wmi` on the current host:
+
+```bash
+sudo modprobe hp_wmi
+```
+
+the following was immediately confirmed:
+
+- `lsmod` showed `hp_wmi` loaded
+- `/sys/devices/platform/hp-wmi` appeared
+- `/sys/firmware/acpi/platform_profile` became available
+- the local probe tool reported:
+  - `hp_wmi_present=true`
+  - profiles `cool quiet balanced performance`
+  - readable fan RPM telemetry
+  - writable platform profile support
+
+At one sample taken on `2026-03-14T05:17:11Z`, the app observed:
+
+```text
+active_profile: balanced
+fan1_rpm: 2702
+fan2_rpm: 2422
+can_read_rpm: true
+can_set_profile: true
+can_direct_fan_control: false
+```
+
+At another sample taken on `2026-03-14T05:23:00Z`, the underlying sysfs nodes read:
+
+```text
+/sys/devices/platform/hp-wmi/hwmon/hwmon8/fan1_input: 0
+/sys/devices/platform/hp-wmi/hwmon/hwmon8/fan2_input: 0
+/sys/devices/platform/hp-wmi/hwmon/hwmon8/pwm1_enable: 2
+/sys/devices/platform/hp-wmi/platform-profile/platform-profile-0/profile: balanced
+/sys/devices/platform/hp-wmi/platform-profile/platform-profile-0/choices: cool quiet balanced performance
+```
+
+Interpretation:
+
+- fan telemetry is definitely exposed through `hp_wmi`
+- platform-profile switching is definitely exposed through `hp_wmi`
+- fan RPM can legitimately read as `0` transiently, so repeated sampling matters
+- the remaining gap is specifically control semantics, not hardware discovery
+
+## Local Driver Source Findings
+
+The installed DKMS source was available at:
+
+```text
+/usr/src/hp-wmi-1.0.8/hp-wmi.c
+```
+
+This source exposed the following important fan-related commands:
+
+- `HPWMI_FAN_COUNT_GET_QUERY = 0x10`
+- `HPWMI_FAN_SPEED_GET_QUERY = 0x11`
+- `HPWMI_FAN_SPEED_MAX_GET_QUERY = 0x26`
+- `HPWMI_FAN_SPEED_MAX_SET_QUERY = 0x27`
+- `HPWMI_FAN_SPEED_SET_QUERY = 0x2E`
+
+It also showed the hwmon mapping for `pwm1_enable`:
+
+- Linux hwmon value `2` maps to HP "automatic fan"
+- Linux hwmon value `0` maps to HP "max fan"
+- value `1` is intentionally rejected with `-EINVAL`
+
+This explains the earlier failed test with:
+
+```bash
+echo 1 > /sys/devices/platform/hp-wmi/hwmon/hwmonX/pwm1_enable
+```
+
+That failure does **not** mean the node is useless. It means the local driver is deliberately exposing only:
+
+- `auto`
+- `max`
+
+and not granular manual speed control.
+
+## Board Identification Gap
+
+The same local `hp_wmi` source contains DMI allowlists for several Omen/Victus-specific thermal paths.
+
+Observed board:
+
+```text
+8A3D
+```
+
+Boards explicitly recognized by the driver for Victus-specific thermal handling did **not** include `8A3D` in this DKMS version.
+
+An additional check against upstream `drivers/platform/x86/hp/hp-wmi.c` on `2026-03-14` also did not show `8A3D` in the current board tables.
+
+Interpretation:
+
+- this host is likely using the generic `HPWMI_THERMAL_PROFILE_QUERY` path for platform profiles
+- it is likely **not** using the more specialized Omen/Victus code paths that call extra EC/WMI helpers
+- Windows OMEN software may still know about `8A3D` and may be using a vendor path that Linux does not currently select for this board
+
+## Reverse-Engineering Hypothesis After Source Review
+
+The current most likely situation is:
+
+1. `Auto` and `Max` fan modes probably already exist on Linux through `pwm1_enable=2` and `pwm1_enable=0`.
+2. Granular manual percentages do not exist in the current `hp_wmi` hwmon API for this board.
+3. Windows granular control likely uses vendor-specific WMI payloads or EC writes not currently exported by the Linux driver.
+4. A useful next experiment is to validate whether `pwm1_enable=0` reliably forces "max fan" on this machine and whether `2` restores firmware automatic mode.
+
+## 2026-03-14 Fan Mode Validation
+
+That next experiment was run immediately on the live system.
+
+Procedure:
+
+```bash
+H=$(find /sys/devices/platform/hp-wmi/hwmon -maxdepth 1 -mindepth 1 -type d | head -n1)
+cat "$H/pwm1_enable"
+cat "$H/fan1_input"
+cat "$H/fan2_input"
+echo 0 | sudo tee "$H/pwm1_enable"
+sleep 3
+cat "$H/pwm1_enable"
+cat "$H/fan1_input"
+cat "$H/fan2_input"
+echo 2 | sudo tee "$H/pwm1_enable"
+sleep 3
+cat "$H/pwm1_enable"
+cat "$H/fan1_input"
+cat "$H/fan2_input"
+```
+
+Observed values:
+
+```text
+before:
+  pwm1_enable=2
+  fan1_input=0
+  fan2_input=0
+
+3 seconds after writing 0:
+  pwm1_enable=0
+  fan1_input=2629
+  fan2_input=2566
+
+3 seconds after restoring 2:
+  pwm1_enable=2
+  fan1_input=3455
+  fan2_input=2913
+```
+
+Interpretation:
+
+- `pwm1_enable=0` is a real control path on this laptop
+- it activates HP's "max fan" mode rather than a manual PWM percentage mode
+- `pwm1_enable=2` restores firmware automatic fan control
+- Linux therefore already supports:
+  - `auto`
+  - `max`
+- Linux still does **not** expose:
+  - per-fan target RPM
+  - percentage control
+  - a writable manual curve interface
+
+Updated bottom line:
+
+- the earlier blanket statement "direct fan control is unavailable" is too strict
+- the accurate statement is:
+  - limited direct fan mode control exists
+  - granular manual fan level control does not yet exist
 
 ## Recommended Next Steps
 
