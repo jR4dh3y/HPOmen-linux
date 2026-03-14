@@ -27,7 +27,14 @@ namespace VictusControl {
         }
 
         public static void write_text (string path, string contents) throws Error {
-            FileUtils.set_contents(path, "%s\n".printf(contents));
+            var stream = FileStream.open(path, "w");
+            if (stream == null) {
+                throw new FileError.FAILED("Unable to open %s for writing".printf(path));
+            }
+
+            if (stream.puts("%s\n".printf(contents)) == FileStream.EOF) {
+                throw new FileError.FAILED("Failed to write %s".printf(path));
+            }
         }
 
         public static string[] list_directories (string path) {

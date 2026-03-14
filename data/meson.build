@@ -16,7 +16,12 @@ desktop_file = configure_file(
 
 install_data(
   dbus_service,
-  install_dir: join_paths(get_option('datadir'), 'dbus-1', 'system-services'),
+  install_dir: '/usr/share/dbus-1/system-services',
+)
+
+install_data(
+  'io.github.radhey.VictusControl1.conf',
+  install_dir: '/usr/share/dbus-1/system.d',
 )
 
 install_data(
