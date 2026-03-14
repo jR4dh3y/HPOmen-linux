@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Victus Control
+Comment=Monitor HP Victus thermals and platform profiles
+Exec=@bindir@/victus-tray
+Icon=utilities-system-monitor-symbolic
+Terminal=false
+Categories=System;Monitor;
+StartupNotify=false

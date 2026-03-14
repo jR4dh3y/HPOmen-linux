@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.radhey.VictusControl</id>
+  <name>Victus Control</name>
+  <summary>Tray-first monitor and profile controller for HP Victus laptops</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <launchable type="desktop-id">io.github.radhey.VictusControl.desktop</launchable>
+  <description>
+    <p>Victus Control provides a GTK4 monitor window, a tray app, a privileged helper, and a probe CLI for HP Victus Linux systems.</p>
+  </description>
+</component>
