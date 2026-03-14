@@ -1,52 +1,7 @@
 namespace VictusControl {
-    public class AutoPolicyController : Object {
-        private HardwareBackend backend;
-        private uint source_id = 0;
-        public bool enabled { get; private set; default = false; }
-
-        public AutoPolicyController (HardwareBackend backend) {
-            this.backend = backend;
-        }
-
-        public void set_active (bool enabled) {
-            this.enabled = enabled;
-            if (!enabled) {
-                if (source_id != 0) {
-                    Source.remove(source_id);
-                    source_id = 0;
-                }
-                return;
-            }
-            if (source_id == 0) {
-                source_id = Timeout.add_seconds(DEFAULT_AUTO_POLICY_INTERVAL_SECONDS, () => {
-                    apply_once();
-                    return this.enabled;
-                });
-            }
-            apply_once();
-        }
-
-        private void apply_once () {
-            var snapshot = backend.read_snapshot(true);
-            if (!snapshot.can_set_hardware_profile || snapshot.max_temp_c < 0) {
-                return;
-            }
-            string target;
-            if (snapshot.max_temp_c >= 78) {
-                target = "performance";
-            } else if (snapshot.max_temp_c >= 64) {
-                target = "balanced";
-            } else {
-                target = "quiet";
-            }
-            try {
-                backend.set_hardware_profile(backend.choose_hardware_profile_for_policy(target));
-            } catch (Error error) {
-                warning("Auto policy failed: %s", error.message);
-            }
-        }
-    }
-
+    /**
+     * D-Bus interface contract exposed by the victusd helper.
+     */
     [DBus (name = "io.github.radhey.VictusControl1")]
     public interface ControlApi : Object {
         public abstract HashTable<string, Variant> get_snapshot () throws Error;
@@ -58,6 +13,10 @@ namespace VictusControl {
         public abstract HashTable<string, Variant> run_probe (string probe_name, HashTable<string, Variant> args) throws Error;
     }
 
+    /**
+     * D-Bus service implementation that delegates hardware operations
+     * to HardwareBackend and policy decisions to AutoPolicyController.
+     */
     public class ControlService : Object, ControlApi {
         private HardwareBackend backend;
         private AutoPolicyController auto_policy;

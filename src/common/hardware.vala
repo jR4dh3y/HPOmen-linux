@@ -8,16 +8,8 @@ namespace VictusControl {
             return raw != null ? raw.split(" ") : new string[0];
         }
 
-        public string[] get_platform_profiles () {
-            return get_hardware_profiles();
-        }
-
         public string get_active_hardware_profile () {
             return Fs.read_text(HP_WMI_HARDWARE_PROFILE_PATH) ?? "unknown";
-        }
-
-        public string get_active_platform_profile () {
-            return get_active_hardware_profile();
         }
 
         public bool get_direct_fan_capability (out string reason) {
@@ -32,9 +24,6 @@ namespace VictusControl {
             snapshot.active_hardware_profile = get_active_hardware_profile();
             snapshot.available_hardware_profiles = get_hardware_profiles();
             snapshot.can_set_hardware_profile = Fs.exists(HP_WMI_HARDWARE_PROFILE_PATH);
-            snapshot.active_profile = snapshot.active_hardware_profile;
-            snapshot.available_profiles = snapshot.available_hardware_profiles;
-            snapshot.can_set_profile = snapshot.can_set_hardware_profile;
             snapshot.helper_state = "ready";
             snapshot.auto_policy_enabled = auto_policy_enabled;
 
@@ -63,10 +52,6 @@ namespace VictusControl {
             throw new ControlError.INVALID_ARGUMENT("Unsupported HP WMI hardware profile: %s".printf(requested));
         }
 
-        public void set_platform_profile (string requested) throws Error {
-            set_hardware_profile(requested);
-        }
-
         public void set_fan_mode (string requested) throws Error {
             var hwmon_dir = locate_hp_hwmon_dir();
             if (hwmon_dir == null) {
@@ -76,10 +61,10 @@ namespace VictusControl {
             string value;
             switch (requested) {
             case FAN_MODE_AUTO:
-                value = "2";
+                value = SYSFS_FAN_MODE_AUTO;
                 break;
             case FAN_MODE_MAX:
-                value = "0";
+                value = SYSFS_FAN_MODE_MAX;
                 break;
             default:
                 throw new ControlError.INVALID_ARGUMENT("Unsupported fan mode: %s".printf(requested));
@@ -113,10 +98,6 @@ namespace VictusControl {
             return choices.length > 0 ? choices[0] : requested;
         }
 
-        public string choose_profile_for_policy (string requested) {
-            return choose_hardware_profile_for_policy(requested);
-        }
-
         private void read_fan_speeds (Snapshot snapshot) {
             var hwmon_dir = locate_hp_hwmon_dir();
             if (hwmon_dir == null) {
@@ -146,10 +127,10 @@ namespace VictusControl {
 
             snapshot.can_set_fan_mode = true;
             switch (Fs.read_int(path)) {
-            case 2:
+            case SYSFS_FAN_MODE_AUTO_INT:
                 snapshot.active_fan_mode = FAN_MODE_AUTO;
                 break;
-            case 0:
+            case SYSFS_FAN_MODE_MAX_INT:
                 snapshot.active_fan_mode = FAN_MODE_MAX;
                 break;
             default:
@@ -187,7 +168,7 @@ namespace VictusControl {
             snapshot.can_read_temp = max_temp >= 0;
         }
 
-        private string? locate_hp_hwmon_dir () {
+        public static string? locate_hp_hwmon_dir () {
             foreach (var dir in Fs.list_directories(HP_WMI_HWMON_PATH)) {
                 if (Fs.exists(Path.build_filename(dir, "fan1_input")) || Fs.exists(Path.build_filename(dir, "fan2_input"))) {
                     return dir;

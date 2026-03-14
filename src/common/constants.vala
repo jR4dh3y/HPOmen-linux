@@ -19,4 +19,17 @@ namespace VictusControl {
     public const string USER_CONFIG_RELATIVE_PATH = "victus-control/config.ini";
     public const uint DEFAULT_POLL_INTERVAL_SECONDS = 3;
     public const uint DEFAULT_AUTO_POLICY_INTERVAL_SECONDS = 5;
+
+    /* Auto-policy temperature thresholds (degrees C). */
+    public const int AUTO_POLICY_TEMP_HIGH = 78;
+    public const int AUTO_POLICY_TEMP_MID = 64;
+
+    /* sysfs fan-mode values written to / read from pwm1_enable. */
+    public const string SYSFS_FAN_MODE_AUTO = "2";
+    public const string SYSFS_FAN_MODE_MAX = "0";
+    public const int SYSFS_FAN_MODE_AUTO_INT = 2;
+    public const int SYSFS_FAN_MODE_MAX_INT = 0;
+
+    /* Temperature normalization ceiling (degrees C). */
+    public const double TEMP_NORMALIZE_MAX = 100.0;
 }

@@ -14,11 +14,8 @@ namespace VictusControl {
                 profiles.add_string_element(profile);
             }
             root.set_array_member("hardware_profiles", profiles);
-            var legacy_profiles = new Json.Array();
-            foreach (var profile in backend.get_hardware_profiles()) {
-                legacy_profiles.add_string_element(profile);
-            }
-            root.set_array_member("platform_profiles", legacy_profiles);
+            /* Legacy alias — same data under the old key for backward compat. */
+            root.set_array_member("platform_profiles", profiles);
 
             var hardware_profile = new Json.Object();
             hardware_profile.set_string_member("path", HP_WMI_HARDWARE_PROFILE_PATH);
@@ -47,7 +44,7 @@ namespace VictusControl {
             }
             root.set_array_member("wmi_devices", wmi_devices);
 
-            var hp_hwmon = locate_hp_hwmon_dir();
+            var hp_hwmon = HardwareBackend.locate_hp_hwmon_dir();
             if (hp_hwmon != null) {
                 var hp = new Json.Object();
                 hp.set_string_member("path", hp_hwmon);
@@ -112,13 +109,6 @@ namespace VictusControl {
             }
         }
 
-        private static string? locate_hp_hwmon_dir () {
-            foreach (var dir in Fs.list_directories(HP_WMI_HWMON_PATH)) {
-                if (Fs.exists(Path.build_filename(dir, "fan1_input")) || Fs.exists(Path.build_filename(dir, "fan2_input"))) {
-                    return dir;
-                }
-            }
-            return null;
-        }
+        /* locate_hp_hwmon_dir() lives in HardwareBackend — no local copy needed. */
     }
 }

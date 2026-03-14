@@ -100,25 +100,10 @@ namespace VictusControl {
         private string build_summary (Snapshot snapshot) {
             return "%s | %s | %s/%s RPM".printf(
                 snapshot.max_temp_c >= 0 ? "%dC".printf(snapshot.max_temp_c) : "Temp n/a",
-                format_profile(snapshot.active_hardware_profile),
+                Formatting.profile(snapshot.active_hardware_profile),
                 snapshot.fan1_rpm >= 0 ? "%d".printf(snapshot.fan1_rpm) : "n/a",
                 snapshot.fan2_rpm >= 0 ? "%d".printf(snapshot.fan2_rpm) : "n/a"
             );
-        }
-
-        private string format_profile (string profile) {
-            switch (profile.down()) {
-            case "cool":
-                return "Cool";
-            case "quiet":
-                return "Quiet";
-            case "balanced":
-                return "Balanced";
-            case "performance":
-                return "Performance";
-            default:
-                return profile != "" ? profile : "Unavailable";
-            }
         }
 
         private delegate bool BoolCall () throws Error;

@@ -12,6 +12,7 @@ polkit_dep = dependency('polkit-gobject-1')
 common_sources = files(
   'common/constants.vala',
   'common/errors.vala',
+  'common/formatting.vala',
   'common/models.vala',
   'common/sysfs.vala',
   'common/hardware.vala',
@@ -22,7 +23,8 @@ common_sources = files(
 executable(
   'victusd',
   common_sources + files(
-    'helper/service.vala',
+    'helper/auto_policy.vala',
+    'helper/control_service.vala',
     'helper/main.vala',
   ),
   dependencies: [
@@ -57,7 +59,14 @@ executable(
   'victus-control',
   common_sources + files(
     'app/config.vala',
-    'app/window.vala',
+    'app/controller.vala',
+    'app/widgets/widget_helpers.vala',
+    'app/widgets/hero_section.vala',
+    'app/widgets/overview_section.vala',
+    'app/widgets/thermal_section.vala',
+    'app/widgets/profile_section.vala',
+    'app/widgets/fan_section.vala',
+    'app/widgets/main_window.vala',
     'app/main.vala',
   ),
   dependencies: [
