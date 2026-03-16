@@ -2,7 +2,7 @@
 
 Victus Control is a Linux-first control surface for HP Victus hardware written in Vala. This repo contains four binaries:
 
-- `victus-control`: GTK4 monitor window (featuring a compact, editorial-style dashboard)
+- `victus-control`: GTK4 monitor window
 - `victus-tray`: GTK3 + Ayatana AppIndicator tray companion
 - `victusd`: D-Bus helper exposing normalized hardware state and profile actions
 - `victus-probe`: probe CLI for WMI/sysfs inventory and host snapshots
@@ -15,6 +15,17 @@ meson compile -C build
 ```
 
 ## Run
+
+1. Use the One-Shot Script:
+
+```bash
+./run-victus-control.sh
+```
+it will handle building the project, reloading the system bus, and starting the helper, tray companion, and monitor window together.
+
+Or 
+
+2. Run components manually:
 
 Probe the current machine:
 
@@ -36,26 +47,23 @@ Launch the monitor window or tray:
 ./build/src/victus-tray
 ```
 
-If you use `run-victus-control.sh`, it will handle building the project, reloading the system bus, and starting the helper, tray companion, and monitor window together.
-
 ## Current Behavior
 
 - Reads DMI identity, hwmon temperatures, HP WMI hardware-profile state, and HP WMI inventory.
 - Exposes HP WMI hardware-profile switching and a temperature-driven auto-policy mode in the helper.
 - Exposes the four validated HP WMI hardware profiles seen on this host: `cool`, `quiet`, `balanced`, and `performance`.
 - Exposes validated HP fan modes where available: `Auto` and `Max`.
-- The GTK4 frontend (`victus-control`) uses a dense, flat, 2-column grid layout to eliminate scrolling, paired with an editorial dark-mode aesthetic.
 - Keeps tray and GTK4 window as separate processes to avoid GTK3/GTK4 AppIndicator conflicts.
 
 ## Project Structure
 
 ```text
 src/
-├── common/              # Shared library (no UI dependencies)
-├── helper/              # System daemon (runs as root, auto-policy engine)
+├── common/              # Shared library
+├── helper/              # System daemon
 ├── app/                 # GTK4 monitor window
-│   ├── widgets/         # Pure UI components (hero, thermal, profile, fan)
-│   ├── style.css        # Editorial dark-mode stylesheet
+│   ├── widgets/         # UI components
+│   ├── style.css        # stylesheet
 │   └── ...
 ├── tray/                # GTK3 system tray
 └── probe/               # CLI probe tool
