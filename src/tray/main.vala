@@ -47,7 +47,7 @@ namespace VictusControl {
             var open_item = new Gtk.MenuItem.with_label("Open Monitor");
             open_item.activate.connect(() => {
                 try {
-                    Process.spawn_command_line_async("victus-control");
+                    Process.spawn_command_line_async(RuntimePaths.monitor_binary());
                 } catch (Error error) {
                     status_item.set_label(error.message);
                 }

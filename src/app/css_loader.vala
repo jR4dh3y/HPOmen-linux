@@ -5,12 +5,9 @@ namespace VictusControl {
     public class CssLoader {
         public static void load () {
             var provider = new Gtk.CssProvider();
-            
+
             var local_css_path = "src/app/style.css";
-            var installed_css_path = Path.build_filename(
-                Path.get_dirname(Environment.find_program_in_path("victus-control") ?? ""),
-                "..", "share", "victus-control", "style.css"
-            );
+            var installed_css_path = RuntimePaths.style_css();
 
             if (Fs.exists(local_css_path)) {
                 provider.load_from_path(local_css_path);
@@ -32,8 +29,8 @@ namespace VictusControl {
 
         private const string FALLBACK_CSS = """
             window {
-                background-color: #121211; 
-                color: #E2DFD8; 
+                background-color: #121211;
+                color: #E2DFD8;
                 font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
                 -gtk-font-smoothing: antialiased;
             }
@@ -106,7 +103,7 @@ namespace VictusControl {
 
             .card-subtitle {
                 font-family: "JetBrains Mono", "Fira Code", monospace;
-                color: #D4A373; 
+                color: #D4A373;
                 font-weight: 500;
                 font-size: 10px;
                 letter-spacing: 0.2px;
