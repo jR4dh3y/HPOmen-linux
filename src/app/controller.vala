@@ -40,38 +40,45 @@ namespace VictusControl {
 
         /** Request a hardware-profile change. */
         public void set_profile (string profile) {
-            try {
-                ensure_client();
-                client.set_hardware_profile(profile);
-                refresh();
-            } catch (Error error) {
-                action_failed(error.message);
-            }
+            run_with_retry (() => { client.set_hardware_profile (profile); });
         }
 
         /** Toggle the temperature-driven auto-policy. */
         public void set_auto_policy (bool enabled) {
-            try {
-                ensure_client();
-                client.set_auto_policy(enabled);
-                refresh();
-            } catch (Error error) {
-                action_failed(error.message);
-            }
+            run_with_retry (() => { client.set_auto_policy (enabled); });
         }
 
         /** Switch fan mode (auto / max). */
         public void set_fan_mode (string mode) {
-            try {
-                ensure_client();
-                client.set_fan_mode(mode);
-                refresh();
-            } catch (Error error) {
-                action_failed(error.message);
-            }
+            run_with_retry (() => { client.set_fan_mode (mode); });
         }
 
         /* ---- internals ---- */
+
+        private delegate void ActionCall () throws Error;
+
+        /**
+         * Execute a D-Bus action, reconnecting once on failure.
+         *
+         * Handles stale proxy connections that occur when victusd
+         * restarts between poll cycles.
+         */
+        private void run_with_retry (owned ActionCall action) {
+            try {
+                ensure_client ();
+                action ();
+                refresh ();
+            } catch (Error first_error) {
+                client = null;
+                try {
+                    ensure_client ();
+                    action ();
+                    refresh ();
+                } catch (Error retry_error) {
+                    action_failed (retry_error.message);
+                }
+            }
+        }
 
         private void refresh () {
             try {

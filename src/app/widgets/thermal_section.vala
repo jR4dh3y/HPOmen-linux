@@ -18,31 +18,29 @@ namespace VictusControl {
             fan1_label = WidgetHelpers.create_metric_value_label();
             fan2_label = WidgetHelpers.create_metric_value_label();
 
-            var grid = new Gtk.Grid();
-            grid.column_spacing = 12;
-            grid.row_spacing = 12;
-            
+            /* Top row: 3 equal-width temperature cards */
+            var temp_row = new Gtk.Box(Gtk.Orientation.HORIZONTAL, 12);
+            temp_row.homogeneous = true;
             var cpu_card = WidgetHelpers.create_info_card("CPU", cpu_temp_label);
-            cpu_card.hexpand = true;
-            grid.attach(cpu_card, 0, 0, 1, 1);
-            
             var gpu_card = WidgetHelpers.create_info_card("GPU", gpu_temp_label);
-            gpu_card.hexpand = true;
-            grid.attach(gpu_card, 1, 0, 1, 1);
-            
             var peak_card = WidgetHelpers.create_info_card("Peak", max_temp_label);
-            peak_card.hexpand = true;
-            grid.attach(peak_card, 2, 0, 1, 1);
-            
-            var fan1_card = WidgetHelpers.create_info_card("Fan 1", fan1_label);
-            fan1_card.hexpand = true;
-            grid.attach(fan1_card, 0, 1, 1, 1);
-            
-            var fan2_card = WidgetHelpers.create_info_card("Fan 2", fan2_label);
-            fan2_card.hexpand = true;
-            grid.attach(fan2_card, 1, 1, 2, 1);
+            temp_row.append(cpu_card);
+            temp_row.append(gpu_card);
+            temp_row.append(peak_card);
 
-            append(WidgetHelpers.wrap_section("Telemetry", grid));
+            /* Bottom row: 2 equal-width fan cards */
+            var fan_row = new Gtk.Box(Gtk.Orientation.HORIZONTAL, 12);
+            fan_row.homogeneous = true;
+            var fan1_card = WidgetHelpers.create_info_card("Fan 1", fan1_label);
+            var fan2_card = WidgetHelpers.create_info_card("Fan 2", fan2_label);
+            fan_row.append(fan1_card);
+            fan_row.append(fan2_card);
+
+            var rows = new Gtk.Box(Gtk.Orientation.VERTICAL, 12);
+            rows.append(temp_row);
+            rows.append(fan_row);
+
+            append(WidgetHelpers.wrap_section("Telemetry", rows));
         }
 
         public void update (Snapshot snapshot) {

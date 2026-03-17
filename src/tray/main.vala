@@ -117,8 +117,17 @@ namespace VictusControl {
                     call();
                 }
                 refresh();
-            } catch (Error error) {
-                status_item.set_label(error.message);
+            } catch (Error first_error) {
+                client = null;
+                try {
+                    connect_helper();
+                    if (client != null) {
+                        call();
+                    }
+                    refresh();
+                } catch (Error retry_error) {
+                    status_item.set_label(retry_error.message);
+                }
             }
         }
     }

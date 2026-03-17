@@ -32,8 +32,8 @@ namespace VictusControl {
         }
 
         public void update (Snapshot snapshot, bool hide_unsupported) {
-            fan_auto_button.sensitive = snapshot.can_set_fan_mode && snapshot.active_fan_mode != "auto";
-            fan_max_button.sensitive = snapshot.can_set_fan_mode && snapshot.active_fan_mode != "max";
+            fan_auto_button.sensitive = snapshot.can_set_fan_mode;
+            fan_max_button.sensitive = snapshot.can_set_fan_mode;
             WidgetHelpers.update_active_button(fan_auto_button, snapshot.active_fan_mode == "auto");
             WidgetHelpers.update_active_button(fan_max_button, snapshot.active_fan_mode == "max");
             fan_section_box.visible = !hide_unsupported || snapshot.can_set_fan_mode;
