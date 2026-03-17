@@ -1,135 +1,146 @@
 # Agent Guidelines for Victus Control
 
-Read this file before making any changes. Append new lessons instead of rewriting old entries.
+Read this file before making any changes. Append new lessons to the Mistake Log instead of rewriting old entries.
+
+## Build Commands
+
+The project uses **Meson** with a Vala toolchain. No tests exist yet.
+
+```bash
+# First-time setup (from repo root)
+meson setup build --prefix /usr
+
+# Compile all four binaries (victusd, victus-control, victus-tray, victus-probe)
+meson compile -C build
+
+# Install (requires sudo; installs D-Bus service, polkit policy, desktop file)
+sudo meson install -C build
+
+# Full build-install-run cycle (the canonical way to launch)
+./run-victus-control.sh
+
+# Reconfigure an existing build directory
+meson configure build --prefix /usr
+
+# Clean rebuild
+rm -rf build && meson setup build --prefix /usr && meson compile -C build
+```
+
+There is **no test suite, no linter, and no CI pipeline**. Validate changes by compiling successfully with `meson compile -C build`. The Vala compiler (`valac`) is the only static checker — build warnings at `warning_level=2` are the closest thing to a lint pass.
+
+### System Integration
+
+D-Bus files **must** install to `/usr/share/dbus-1/` (not `/usr/local/share/`). After install, reload the system bus: `sudo systemctl reload dbus`. The helper (`victusd`) runs as root on the system bus; kill stale instances before testing new code: `sudo pkill -x victusd`.
+
+---
+
+## Project Structure
+
+```
+src/
+  common/       Shared code: models, constants, sysfs I/O, formatting, D-Bus client
+  helper/       victusd — privileged D-Bus service (system bus, runs as root)
+  app/          victus-control — GTK4 monitoring GUI
+    widgets/    UI components (each receives Snapshot, emits signals)
+  tray/         victus-tray — GTK3 + Ayatana AppIndicator tray app
+  probe/        victus-probe — CLI hardware inventory tool
+data/           D-Bus service/policy files, desktop entry, metainfo
+```
+
+Four executables are built: `victusd`, `victus-control`, `victus-tray`, `victus-probe`. All share `common_sources` from `src/common/`.
+
+---
+
+## Code Style
+
+### Language and Namespace
+
+- **Language**: Vala (compiles to C via valac, targets GLib/GObject)
+- **Single namespace**: All code lives in `namespace VictusControl { }`. No sub-namespaces.
+- **No explicit imports**: Dependencies come from Meson `dependency()` declarations and GIR. Never use `using` directives.
+
+### Naming Conventions
+
+| Element        | Convention          | Example                            |
+|----------------|---------------------|------------------------------------|
+| Classes        | `PascalCase`        | `HardwareBackend`, `FanSection`    |
+| Methods        | `snake_case`        | `read_snapshot`, `set_fan_mode`    |
+| Properties     | `snake_case`        | `active_hardware_profile`          |
+| Signals        | `snake_case`        | `snapshot_updated`, `action_failed`|
+| Constants      | `UPPER_SNAKE_CASE`  | `DEFAULT_POLL_INTERVAL_SECONDS`    |
+| Local variables| `snake_case`        | `hwmon_dir`, `snapshot`            |
+| Error domains  | `PascalCase`        | `ControlError`                     |
+
+### Formatting
+
+- 4-space indentation (no tabs).
+- Opening braces on the same line: `public void foo () {`.
+- Space before parentheses in method declarations: `public void foo ()`, not `public void foo()`.
+- `switch` cases aligned with `case` at same indent as `switch`, body indented once.
+- Blank line between methods. No trailing whitespace.
+
+### Types and Nullability
+
+- Use `?` suffix for nullable types: `string?`, `ControlClient?`.
+- Provide `default =` values on GObject properties: `public int fan1_rpm { get; set; default = -1; }`.
+- Use `-1` for unavailable integer metrics; `""` for unavailable strings; `"unknown"` for state fields.
+- Prefer `string[]` over `GenericArray<string>` for simple lists.
+
+### Error Handling
+
+- Custom error domain: `ControlError { FAILED, IO, INVALID_ARGUMENT, NOT_AUTHORIZED, UNSUPPORTED }`.
+- Mark fallible methods with `throws Error`.
+- Catch with `try { ... } catch (Error error) { ... }`. Use `error.message` for logging.
+- Print errors to `stderr`: `stderr.printf("victusd: %s\n", error.message)`.
+- Never silently swallow errors. Log or propagate.
+
+### Architecture Rules
+
+- **UI widgets never touch D-Bus or sysfs.** Widgets receive data via `update(Snapshot)` and emit signals for user actions. `AppController` owns the D-Bus connection and dispatches.
+- **Controller pattern**: `AppController` polls via `ControlClient`, emits `snapshot_updated` / `connection_lost` / `action_failed` signals. Widgets subscribe.
+- **Shared code belongs in `src/common/`.** Both GTK4 app and GTK3 tray depend on it. Never duplicate between the two.
+- **All magic numbers go in `src/common/constants.vala`.** Paths, thresholds, polling intervals, sysfs values.
+
+### File Size and Organization
+
+- **150 LOC max per file.** If a file exceeds this, split it. The only exception is embedded CSS fallbacks.
+- **Keep UI and logic separate.** No business logic in widget files; no GTK in common/ or helper/.
+- **One class per file** (with minor helpers allowed in the same file).
+- **New source files must be added to `src/meson.build`** in the appropriate executable's source list.
+
+### sysfs I/O
+
+- Use `Fs.write_text()` (which uses `FileStream.open` + `puts`) for sysfs writes. Never use `FileUtils.set_contents()` — it does temp-file + rename which breaks on `/sys/` attributes.
+- Use `Fs.read_text()` / `Fs.read_int()` for sysfs reads. They handle null and strip whitespace.
 
 ---
 
 ## Before You Start Coding
 
-### Ask Yourself:
-
-1. **Does this already exist?**
-   - Search the codebase for similar functionality
-   - Check the utility folders listed in "Core Principles"
-
-2. **Can I extend something existing?**
-   - Maybe a utility just needs one more function
-   - Maybe a component just needs one more prop
-
-3. **Where should this live?**
-   - Is it reusable? → Put in `common/`
-   - Is it specific to one feature? → Keep it local
-   - Is it a constant? → Put in `constants.vala`
-
-4. **Am I duplicating anything?**
-   - If you're copying code, stop and extract it
-   - If you're defining the same type twice, use the existing one
-
-5. **Is this function doing too much?**
-   - Can you describe it in one sentence without "and"?
-   - If not, break it down
-
----
-
-## Core Principles
-
-- **Do not create monolithic files.** Keep UI and logic separate at all times.
-- **No component should exceed 150 LOC.** If it does, rethink the design — it should never need to be that long. Break it into smaller, focused pieces.
-- **UI widgets must not talk to D-Bus or any backend directly.** They receive data via `update(Snapshot)` methods and emit signals for user actions. The controller owns the connection.
-- **Shared formatting, constants, and utilities live in `src/common/`.** Both the GTK4 app and GTK3 tray use them — never duplicate between the two.
-- **Named constants over magic numbers.** Temperature thresholds, sysfs values, polling intervals — all belong in `constants.vala`.
-
-### Project Structure
-
-```
-src/
-├── common/              # Shared library (no UI dependencies)
-│   ├── constants.vala   #   Named constants (paths, thresholds, modes)
-│   ├── errors.vala      #   Error domain
-│   ├── formatting.vala  #   Display formatting (shared by GTK4 + GTK3)
-│   ├── models.vala      #   Snapshot data class + serialization
-│   ├── sysfs.vala       #   Filesystem abstraction
-│   ├── hardware.vala    #   Hardware access layer (profiles, temps)
-│   ├── fan_backend.vala #   Fan/hwmon operations (mode, RPM, hwmon discovery)
-│   ├── probe.vala       #   Deep WMI inventory + probe state
-│   └── service-client.vala  # D-Bus client proxy
-├── helper/              # System daemon (runs as root)
-│   ├── main.vala        #   Entry point
-│   ├── auto_policy.vala #   Temperature-driven policy engine
-│   └── control_service.vala # D-Bus interface + service impl
-├── app/                 # GTK4 monitor window
-│   ├── main.vala        #   Entry point
-│   ├── config.vala      #   User config (INI file)
-│   ├── style.css        #   External stylesheet
-│   ├── css_loader.vala  #   CSS loading (installed path + inline fallback)
-│   ├── controller.vala  #   D-Bus + polling + action dispatch
-│   └── widgets/         #   Pure UI components (no D-Bus)
-│       ├── widget_helpers.vala   # Reusable widget factories
-│       ├── main_window.vala      # Window shell (assembles sections)
-│       ├── hero_section.vala     # Status banner
-│       ├── thermal_section.vala  # Temperature + fan RPM
-│       ├── profile_section.vala  # Profile buttons + auto-policy
-│       └── fan_section.vala      # Fan mode controls
-├── tray/                # GTK3 system tray
-│   └── main.vala
-└── probe/               # CLI probe tool
-    └── main.vala
-```
+1. **Does this already exist?** Search `src/common/` for similar functionality first.
+2. **Can I extend something existing?** Add a method/property rather than a new file.
+3. **Where should this live?** Reusable -> `common/`. Feature-specific -> local. Constant -> `constants.vala`.
+4. **Am I duplicating anything?** If copying code, extract a shared utility.
+5. **Is this function doing too much?** Describe it in one sentence without "and". If you can't, split it.
 
 ---
 
 ## Session Mistake Log
 
-Purpose: keep a persistent record of mistakes made while working on this repo, so future sessions can append to it and avoid repeating the same failures.
-
-How to use this section:
-- Read it before making changes.
-- Append new mistakes instead of rewriting old entries.
-- For each mistake, record what happened, why it was wrong, and the rule to follow next time.
+Append new mistakes here. Do not rewrite old entries.
 
 ### 2026-03-14
 
-#### 1. Misdiagnosed the offline issue as "helper not started"
+1. **Misdiagnosed offline as "helper not started"** — `victusd` can run without owning its bus name. Rule: verify process + bus-name ownership + a working method call.
+2. **Missed system D-Bus policy file** — Service + polkit files aren't sufficient alone. Rule: validate all install assets (activation service, D-Bus policy, polkit policy).
+3. **Installed D-Bus files to wrong prefix** — `/usr/local/share/` vs `/usr/share/`. Rule: verify host lookup paths; never assume Meson `datadir` is correct for system bus.
+4. **Launcher reused stale helper** — "Already running" != "running new code". Rule: restart/refresh background services after install.
+5. **Wrong write method for sysfs** — `FileUtils.set_contents()` breaks on `/sys/` due to temp-file/rename. Rule: use direct fd writes (FileStream).
+6. **Verified UI capability state too late** — Rule: check live capability flags (`can_set_profile`, `can_set_fan_mode`) before investigating UI code.
+7. **Helper silent on D-Bus registration failure** — Rule: if bus-name ownership fails, exit or log loudly. No silent partial startup.
+8. **Overconfident run instructions before verifying runtime** — Rule: confirm deployment model and host paths before giving instructions.
+9. **Generic UI layouts** — Rule: dense, compact dashboard layouts. No scrollbars, no redundant labels, deliberate aesthetic.
 
-- Mistake: I assumed `Offline` meant only `victusd` was down, but the helper could run without owning `io.github.radhey.VictusControl1`.
-- Rule: For D-Bus "offline" states, always verify process running, bus-name ownership, and a working method call.
+### 2026-03-17
 
-#### 2. Missed the missing system D-Bus policy file in the first pass
-
-- Mistake: I assumed service + polkit files were sufficient and missed the required system D-Bus policy file.
-- Rule: For system-bus services, always validate all install assets: activation service file, D-Bus policy, and polkit policy (if privileged).
-
-#### 3. Installed D-Bus files to the wrong prefix/path
-
-- Mistake: I installed D-Bus assets under `/usr/local/share/...` while this host resolved them from `/usr/share/...`.
-- Rule: Never assume Meson `datadir` is correct for system bus integration; verify host lookup paths and install to known-good locations.
-
-#### 4. The launcher script reused an already-running helper after install
-
-- Mistake: The launcher treated "helper already running" as success, leaving stale `victusd` code active after install.
-- Rule: Deployment scripts that update a background service must restart/refresh it to ensure the newly installed version is actually running.
-
-#### 5. Used the wrong write method for sysfs control files
-
-- Mistake: `Fs.write_text()` used `FileUtils.set_contents()`, which breaks on `/sys/...` attributes due to temp-file/rename behavior.
-- Rule: Use direct in-place fd writes for sysfs controls, and check the write primitive before blaming permissions.
-
-#### 6. Verified UI capability state too late
-
-- Mistake: I chased a frontend explanation before checking snapshot capabilities (`can_set_profile`, `can_set_fan_mode`).
-- Rule: First read live capability flags, then classify as unavailable capability, UI-state bug, or backend action failure.
-
-#### 7. The helper does not fail loudly when D-Bus registration breaks, and I didn't fix that
-
-- Mistake: I found that `victusd` could run without owning its bus name but failed to patch startup diagnostics immediately.
-- Rule: If well-known D-Bus name ownership fails, treat it as startup failure and exit or log loudly—no silent partial startup.
-
-#### 8. I gave the user an overconfident "how to run it" answer before verifying runtime requirements
-
-- Mistake: I gave generic run steps before validating this host’s system-bus/runtime requirements.
-- Rule: For service-integrated apps, confirm deployment model and host paths first, then provide exact machine-correct instructions.
-
-#### 9. Defaulting to generic, spaced-out UI layouts and redundant information
-
-- Mistake: I created a generic, padded UI with redundant information (e.g., subtitle text that repeated button labels) and a layout that required scrolling.
-- Rule: For technical/dashboard UIs, prioritize dense, compact layouts without scrollbars, eliminate redundant text/labels, and apply a deliberate, bold aesthetic rather than generic padding.
+10. **Stale D-Bus proxy not invalidated on action failure** — `refresh()` nulled the client on error but action methods (`set_profile`, `set_fan_mode`, `set_auto_policy`) did not. Stale proxy persisted across retries. Rule: every D-Bus call path must invalidate (`client = null`) on failure, not just the polling path. Same bug existed in both `AppController` and `TrayApp.try_call`.
