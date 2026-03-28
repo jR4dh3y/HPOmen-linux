@@ -7,15 +7,9 @@ namespace VictusControl {
             var provider = new Gtk.CssProvider();
             
             var local_css_path = "src/app/style.css";
-            var installed_css_path = Path.build_filename(
-                Path.get_dirname(Environment.find_program_in_path("victus-control") ?? ""),
-                "..", "share", "victus-control", "style.css"
-            );
 
             if (Fs.exists(local_css_path)) {
                 provider.load_from_path(local_css_path);
-            } else if (Fs.exists(installed_css_path)) {
-                provider.load_from_path(installed_css_path);
             } else {
                 provider.load_from_string(FALLBACK_CSS);
             }

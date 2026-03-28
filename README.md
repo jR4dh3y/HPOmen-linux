@@ -9,6 +9,26 @@ Victus Control is a Linux-first control surface for HP Victus hardware written i
 
 ## Build
 
+Install the required build dependencies first:
+
+- Meson
+- Ninja
+- Vala (`valac`)
+- `pkg-config`
+- C compiler toolchain (`gcc`/`cc`)
+- `glib-2.0`
+- `gio-2.0`
+- `gio-unix-2.0`
+- `gobject-2.0`
+- `gee-0.8`
+- `json-glib-1.0`
+- `gtk4`
+- `gtk+-3.0`
+- `ayatana-appindicator3-0.1`
+- `polkit-gobject-1`
+
+Then configure and compile:
+
 ```bash
 meson setup build
 meson compile -C build
@@ -18,34 +38,34 @@ meson compile -C build
 
 1. Use the One-Shot Script:
 
-```bash
-./run-victus-control.sh
-```
-it will handle building the project, reloading the system bus, and starting the helper, tray companion, and monitor window together.
+  ```bash
+  ./run-victus-control.sh
+  ```
+  it will handle building the project, reloading the system bus, and starting the helper, tray companion, and monitor window together.
 
 Or 
 
 2. Run components manually:
 
-Probe the current machine:
-
-```bash
-./build/src/victus-probe snapshot
-./build/src/victus-probe inventory
-```
-
-Launch the helper:
-
-```bash
-./build/src/victusd
-```
-
-Launch the monitor window or tray:
-
-```bash
-./build/src/victus-control
-./build/src/victus-tray
-```
+  Probe the current machine:
+  
+  ```bash
+  ./build/src/victus-probe snapshot
+  ./build/src/victus-probe inventory
+  ```
+  
+  Launch the helper:
+  
+  ```bash
+  ./build/src/victusd
+  ```
+  
+  Launch the monitor window or tray:
+  
+  ```bash
+  ./build/src/victus-control
+  ./build/src/victus-tray
+  ```
 
 ## Current Behavior
 

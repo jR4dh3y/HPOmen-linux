@@ -3,8 +3,8 @@
  "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
 <policyconfig>
   <vendor>Victus Control</vendor>
-  <vendor_url>https://github.com/radhey/victus-control</vendor_url>
-  <action id="io.github.radhey.VictusControl1.manage">
+  <vendor_url>https://github.com/jr4dh3y/victus-control</vendor_url>
+  <action id="dev.radhey.VictusControl1.manage">
     <description>Manage HP Victus platform profiles and probe operations</description>
     <message>Authentication is required to change HP Victus hardware settings</message>
     <defaults>

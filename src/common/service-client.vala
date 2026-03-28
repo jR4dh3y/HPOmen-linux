@@ -1,5 +1,8 @@
 namespace VictusControl {
     public class ControlClient : Object {
+        /** D-Bus call timeout in milliseconds (5 seconds). */
+        private const int CALL_TIMEOUT_MS = 5000;
+
         private DBusProxy proxy;
 
         public ControlClient () throws Error {
@@ -15,7 +18,7 @@ namespace VictusControl {
         }
 
         public Snapshot get_snapshot () throws Error {
-            var result = proxy.call_sync("GetSnapshot", null, DBusCallFlags.NONE, -1, null);
+            var result = proxy.call_sync("GetSnapshot", null, DBusCallFlags.NONE, CALL_TIMEOUT_MS, null);
             return Snapshot.from_variant_dict(result.get_child_value(0));
         }
 
@@ -40,7 +43,7 @@ namespace VictusControl {
         }
 
         private bool call_bool (string method, Variant parameters) throws Error {
-            var result = proxy.call_sync(method, parameters, DBusCallFlags.NONE, -1, null);
+            var result = proxy.call_sync(method, parameters, DBusCallFlags.NONE, CALL_TIMEOUT_MS, null);
             return result.get_child_value(0).get_boolean();
         }
     }

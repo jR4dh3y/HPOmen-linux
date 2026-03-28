@@ -144,3 +144,9 @@ Append new mistakes here. Do not rewrite old entries.
 ### 2026-03-17
 
 10. **Stale D-Bus proxy not invalidated on action failure** — `refresh()` nulled the client on error but action methods (`set_profile`, `set_fan_mode`, `set_auto_policy`) did not. Stale proxy persisted across retries. Rule: every D-Bus call path must invalidate (`client = null`) on failure, not just the polling path. Same bug existed in both `AppController` and `TrayApp.try_call`.
+11. **Helper zombie on bus name loss** — `Bus.own_name` had no `name_lost` callback. If another victusd stole the name, the old process looped forever serving nothing. Rule: always provide `name_lost` that exits.
+12. **Infinite D-Bus timeout freezes GUI** — `call_sync` used `timeout: -1` (wait forever). A stalled kernel driver blocks the entire main thread permanently. Rule: always set a finite timeout on synchronous D-Bus calls.
+13. **Error messages discarded in hero section** — `show_error()` received the message but displayed only "Error". Next poll cycle (3s) overwrote it with "Online". Rule: display the actual message and hold it long enough to read.
+14. **Config accepts poll_interval_seconds=0** — No validation after load. Zero causes a tight CPU-burning poll loop. Rule: clamp user-supplied intervals to sane minimums.
+15. **Auto-policy threshold flapping** — No hysteresis on temperature thresholds. Oscillating at a boundary caused a sysfs write every 5 seconds. Rule: require temperature to cross threshold minus a margin before switching back down.
+16. **Dead CSS installed-path branch** — `css_loader.vala` looked for an installed stylesheet that was never installed by meson. Rule: don't code paths for files that aren't deployed.

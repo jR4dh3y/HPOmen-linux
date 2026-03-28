@@ -8,9 +8,9 @@ PREFIX="${PREFIX:-/usr}"
 CONTROL_BIN="${PREFIX}/bin/victus-control"
 TRAY_BIN="${PREFIX}/bin/victus-tray"
 HELPER_BIN="${PREFIX}/bin/victusd"
-SERVICE_NAME="io.github.radhey.VictusControl1"
-OBJECT_PATH="/io/github/radhey/VictusControl1"
-METHOD_NAME="io.github.radhey.VictusControl1.GetSnapshot"
+SERVICE_NAME="dev.radhey.VictusControl1"
+OBJECT_PATH="/dev/radhey/VictusControl1"
+METHOD_NAME="dev.radhey.VictusControl1.GetSnapshot"
 
 log() {
   printf '[victus-control] %s\n' "$*"

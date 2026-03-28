@@ -14,6 +14,11 @@ namespace VictusControl {
                         critical("Failed to export D-Bus service: %s", error.message);
                         loop.quit();
                     }
+                },
+                () => {},
+                () => {
+                    stderr.printf("victusd: lost bus name ownership, exiting\n");
+                    loop.quit();
                 }
             );
             loop.run();

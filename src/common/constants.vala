@@ -1,10 +1,10 @@
 namespace VictusControl {
-    public const string APP_ID = "io.github.radhey.VictusControl";
+    public const string APP_ID = "dev.radhey.VictusControl";
     public const string APP_NAME = "Victus Control";
-    public const string SERVICE_NAME = "io.github.radhey.VictusControl1";
-    public const string OBJECT_PATH = "/io/github/radhey/VictusControl1";
-    public const string INTERFACE_NAME = "io.github.radhey.VictusControl1";
-    public const string POLKIT_ACTION_ID = "io.github.radhey.VictusControl1.manage";
+    public const string SERVICE_NAME = "dev.radhey.VictusControl1";
+    public const string OBJECT_PATH = "/dev/radhey/VictusControl1";
+    public const string INTERFACE_NAME = "dev.radhey.VictusControl1";
+    public const string POLKIT_ACTION_ID = "dev.radhey.VictusControl1.manage";
 
     public const string HP_WMI_PATH = "/sys/devices/platform/hp-wmi";
     public const string HP_WMI_HWMON_PATH = "/sys/devices/platform/hp-wmi/hwmon";
@@ -23,6 +23,7 @@ namespace VictusControl {
     /* Auto-policy temperature thresholds (degrees C). */
     public const int AUTO_POLICY_TEMP_HIGH = 78;
     public const int AUTO_POLICY_TEMP_MID = 64;
+    public const int AUTO_POLICY_HYSTERESIS = 5;
 
     /* sysfs fan-mode values written to / read from pwm1_enable. */
     public const string SYSFS_FAN_MODE_AUTO = "2";

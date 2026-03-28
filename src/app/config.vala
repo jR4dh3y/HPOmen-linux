@@ -12,7 +12,8 @@ namespace VictusControl {
             var key_file = new KeyFile();
             try {
                 key_file.load_from_file(path, KeyFileFlags.NONE);
-                config.poll_interval_seconds = (uint) key_file.get_integer("ui", "poll_interval_seconds");
+                var interval = key_file.get_integer("ui", "poll_interval_seconds");
+                config.poll_interval_seconds = interval >= 1 ? (uint) interval : DEFAULT_POLL_INTERVAL_SECONDS;
                 config.hide_unsupported_fan_controls = key_file.get_boolean("ui", "hide_unsupported_fan_controls");
             } catch (Error error) {
             }

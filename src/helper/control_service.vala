@@ -2,7 +2,7 @@ namespace VictusControl {
     /**
      * D-Bus interface contract exposed by the victusd helper.
      */
-    [DBus (name = "io.github.radhey.VictusControl1")]
+    [DBus (name = "dev.radhey.VictusControl1")]
     public interface ControlApi : Object {
         public abstract HashTable<string, Variant> get_snapshot () throws Error;
         public abstract bool set_hardware_profile (string profile) throws Error;

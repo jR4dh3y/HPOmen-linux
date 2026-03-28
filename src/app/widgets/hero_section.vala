@@ -5,6 +5,8 @@ namespace VictusControl {
     public class HeroSection : Gtk.Box {
         private Gtk.Label status_label;
         private Gtk.Label hero_title_label;
+        private string saved_title = "Victus Control";
+        private uint error_timeout_id = 0;
 
         public HeroSection () {
             Object(orientation: Gtk.Orientation.HORIZONTAL, spacing: 16);
@@ -27,19 +29,39 @@ namespace VictusControl {
         }
 
         public void update (Snapshot snapshot) {
+            if (error_timeout_id != 0) {
+                return;
+            }
             status_label.label = "Online";
-            hero_title_label.label = snapshot.product_name != ""
+            saved_title = snapshot.product_name != ""
                 ? snapshot.product_name
                 : "Victus Hardware Control";
+            hero_title_label.label = saved_title;
         }
 
         public void show_offline (string error_message) {
+            clear_error_timeout ();
             status_label.label = "Offline";
             hero_title_label.label = "Victus Control";
         }
 
         public void show_error (string error_message) {
+            clear_error_timeout ();
             status_label.label = "Error";
+            hero_title_label.label = error_message;
+            error_timeout_id = Timeout.add_seconds (6, () => {
+                error_timeout_id = 0;
+                status_label.label = "Online";
+                hero_title_label.label = saved_title;
+                return false;
+            });
+        }
+
+        private void clear_error_timeout () {
+            if (error_timeout_id != 0) {
+                Source.remove (error_timeout_id);
+                error_timeout_id = 0;
+            }
         }
     }
 }
