@@ -22,7 +22,7 @@ install="${pkgname}.install"
 source=(
   "${pkgname}-${pkgver}.tar.zst::${url}/releases/download/v${pkgver}/victus-control-${pkgver}-x86_64.tar.zst"
 )
-sha256sums=('SKIP')
+sha256sums=('0f3bf2949947081641b4b818d4df631d4e81211259aff77d51df244bd8222e0b')
 
 package() {
   install -d "${pkgdir}"
