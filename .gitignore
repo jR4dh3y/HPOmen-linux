@@ -1,2 +1,4 @@
 build/
 build-local-verify*/
+build-release/
+dist/

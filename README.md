@@ -67,6 +67,16 @@ Or
   ./build/src/victus-tray
   ```
 
+## AUR
+
+The repository now includes a binary-package scaffold for AUR under `packaging/aur/victus-control-bin`.
+
+- `scripts/build-release-archive.sh <version>` builds a release tarball with the installed `/usr` tree inside it.
+- Pushing a tag like `v0.1.0` triggers `.github/workflows/release.yml`, which uploads that tarball and a matching `.sha256` file to GitHub Releases.
+- The AUR package then repackages that release archive as `victus-control-bin`.
+
+The current PKGBUILD keeps `sha256sums=('SKIP')` so the template works before the first release exists. For a stricter AUR submission, replace it with the generated release checksum.
+
 ## Current Behavior
 
 - Reads DMI identity, hwmon temperatures, HP WMI hardware-profile state, and HP WMI inventory.
