@@ -122,16 +122,27 @@ namespace VictusControl {
                 margin-top: 4px;
             }
 
-            .status-pill {
-                background-color: rgba(212, 163, 115, 0.15);
-                color: #D4A373;
-                padding: 4px 10px;
-                border-radius: 99px;
+            .status-text {
                 font-weight: 500;
-                font-size: 10px;
-                letter-spacing: 0.5px;
-                border: 1px solid rgba(212, 163, 115, 0.2);
+                font-size: 11px;
+                letter-spacing: 0px;
                 margin-bottom: 0px;
+            }
+
+            .status-connecting {
+                color: #A9A39A;
+            }
+
+            .status-working {
+                color: #D4A373;
+            }
+
+            .status-unavailable {
+                color: #A9A39A;
+            }
+
+            .status-error {
+                color: #F08A7E;
             }
 
             .pill-button {

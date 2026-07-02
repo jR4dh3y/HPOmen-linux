@@ -16,10 +16,23 @@ namespace VictusControl {
             return box;
         }
 
+        public static Gtk.Widget wrap_titleless_section (Gtk.Widget child) {
+            var box = new Gtk.Box(Gtk.Orientation.VERTICAL, 0);
+            box.add_css_class("section-card");
+            box.append(child);
+            return box;
+        }
+
         public static Gtk.Widget create_info_card (string title, Gtk.Label value_label) {
             var title_label = new Gtk.Label(title);
             title_label.halign = Gtk.Align.START;
             title_label.add_css_class("card-title");
+
+            value_label.halign = Gtk.Align.END;
+            value_label.valign = Gtk.Align.END;
+            value_label.hexpand = true;
+            value_label.vexpand = true;
+            value_label.xalign = 1.0f;
 
             var box = new Gtk.Box(Gtk.Orientation.VERTICAL, 4);
             box.add_css_class("metric-card");
@@ -46,8 +59,9 @@ namespace VictusControl {
         public static Gtk.Label create_metric_value_label () {
             var label = new Gtk.Label("");
             label.selectable = false;
-            label.halign = Gtk.Align.START;
-            label.xalign = 0.0f;
+            label.halign = Gtk.Align.END;
+            label.valign = Gtk.Align.END;
+            label.xalign = 1.0f;
             label.add_css_class("metric-value");
             return label;
         }

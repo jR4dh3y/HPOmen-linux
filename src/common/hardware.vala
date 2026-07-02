@@ -7,6 +7,8 @@ namespace VictusControl {
      */
     public class HardwareBackend : Object {
         private FanBackend fan = new FanBackend();
+        private FanTargetBackend fan_targets = new FanTargetBackend();
+        private FanPwmBackend fan_pwm = new FanPwmBackend();
 
         public string[] get_hardware_profiles () {
             var raw = Fs.read_text(HP_WMI_HARDWARE_PROFILE_CHOICES_PATH);
@@ -18,7 +20,18 @@ namespace VictusControl {
         }
 
         public bool get_direct_fan_capability (out string reason) {
-            return ProbeEngine.load_direct_fan_capability(out reason);
+            if (fan_pwm.has_manual_pwm_control(out reason)) {
+                return true;
+            }
+            if (fan_targets.has_manual_rpm_control(out reason)) {
+                return true;
+            }
+            string saved_reason;
+            ProbeEngine.load_direct_fan_capability(out saved_reason);
+            if (reason == "" && saved_reason != "") {
+                reason = saved_reason;
+            }
+            return false;
         }
 
         public Snapshot read_snapshot (bool auto_policy_enabled = false) {
@@ -38,9 +51,6 @@ namespace VictusControl {
 
             string reason;
             snapshot.can_direct_fan_control = get_direct_fan_capability(out reason);
-            if (snapshot.can_set_fan_mode && !snapshot.can_direct_fan_control) {
-                reason = "Auto and max fan modes are available on this machine. Granular fan levels are not validated.";
-            }
             snapshot.fan_control_reason = reason;
 
             return snapshot;
@@ -61,6 +71,28 @@ namespace VictusControl {
             fan.set_fan_mode(requested);
         }
 
+        public void set_fan_target (uint16 fan, uint16 rpm) throws Error {
+            string reason;
+            if (fan_pwm.has_manual_pwm_control(out reason)) {
+                fan_pwm.set_manual_mode();
+                fan_pwm.set_fan_target(fan, rpm);
+                return;
+            }
+            fan_targets.set_manual_mode();
+            fan_targets.set_fan_target(fan, rpm);
+        }
+
+        public void set_fan_levels (uint16 cpu, uint16 gpu) throws Error {
+            string reason;
+            if (fan_pwm.has_manual_pwm_control(out reason)) {
+                fan_pwm.set_manual_mode();
+                fan_pwm.set_fan_levels(cpu, gpu);
+                return;
+            }
+            fan_targets.set_manual_mode();
+            fan_targets.set_fan_levels(cpu, gpu);
+        }
+
         public string choose_hardware_profile_for_policy (string requested) {
             var choices = get_hardware_profiles();
             foreach (var choice in choices) {
@@ -68,8 +100,8 @@ namespace VictusControl {
                     return requested;
                 }
             }
-            if (requested == "quiet") {
-                string[] fallback_profiles = { "cool", "quiet", "balanced" };
+            if (requested == "low-power" || requested == "quiet" || requested == "cool") {
+                string[] fallback_profiles = { "low-power", "quiet", "cool", "balanced" };
                 foreach (var fallback in fallback_profiles) {
                     foreach (var choice in choices) {
                         if (choice == fallback) {

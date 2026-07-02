@@ -38,6 +38,10 @@ namespace VictusControl {
             return call_bool("SetFanMode", new Variant("(s)", mode));
         }
 
+        public bool set_fan_target (uint16 fan, uint16 rpm) throws Error {
+            return call_bool("SetFanTarget", new Variant("(qq)", fan, rpm));
+        }
+
         public bool set_fan_levels (uint16 cpu, uint16 gpu) throws Error {
             return call_bool("SetFanLevels", new Variant("(qq)", cpu, gpu));
         }

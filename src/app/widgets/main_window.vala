@@ -35,8 +35,8 @@ namespace VictusControl {
 
             /* wire widget signals -> controller actions */
             profiles.profile_requested.connect((p) => controller.set_profile(p));
-            profiles.auto_policy_toggled.connect((e) => controller.set_auto_policy(e));
             fans.fan_mode_requested.connect((m) => controller.set_fan_mode(m));
+            fans.fan_target_requested.connect((f, r) => controller.set_fan_target(f, r));
 
             /* ---- layout ---- */
             var main_box = new Gtk.Box(Gtk.Orientation.VERTICAL, 16);
@@ -60,7 +60,7 @@ namespace VictusControl {
 
             // Right Column
             var right_col = new Gtk.Box(Gtk.Orientation.VERTICAL, 16);
-            right_col.hexpand = true;
+            right_col.hexpand = false;
             right_col.vexpand = true;
             right_col.append(profiles);
             right_col.append(fans); // Fan section takes the place of System Overview

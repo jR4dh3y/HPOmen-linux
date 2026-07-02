@@ -1,9 +1,16 @@
 namespace VictusControl {
     public class TrayApp : Object {
+        private const string ACTIVE_SUFFIX = " •";
+
         private AppIndicator.Indicator indicator;
         private ControlClient? client;
-        private Gtk.MenuItem status_item;
-        private Gtk.CheckMenuItem auto_item;
+        private Gtk.MenuItem temp_item;
+        private Gtk.MenuItem rpm_item;
+        private Gtk.MenuItem low_power_item;
+        private Gtk.MenuItem balanced_item;
+        private Gtk.MenuItem performance_item;
+        private Gtk.MenuItem fan_auto_item;
+        private Gtk.MenuItem fan_max_item;
 
         public TrayApp () {
             indicator = new AppIndicator.Indicator(
@@ -25,22 +32,29 @@ namespace VictusControl {
         private Gtk.Menu build_menu () {
             var menu = new Gtk.Menu();
 
-            status_item = new Gtk.MenuItem.with_label("Connecting…");
-            status_item.set_sensitive(false);
-            menu.append(status_item);
+            temp_item = new Gtk.MenuItem.with_label("Temp unavailable");
+            temp_item.set_sensitive(false);
+            menu.append(temp_item);
+
+            rpm_item = new Gtk.MenuItem.with_label("Fans unavailable");
+            rpm_item.set_sensitive(false);
+            menu.append(rpm_item);
 
             menu.append(new Gtk.SeparatorMenuItem());
 
-            menu.append(profile_item("Cool", "cool"));
-            menu.append(profile_item("Quiet", "quiet"));
-            menu.append(profile_item("Balanced", "balanced"));
-            menu.append(profile_item("Performance", "performance"));
+            low_power_item = profile_item("Low Power", "low-power");
+            balanced_item = profile_item("Balanced", "balanced");
+            performance_item = profile_item("Performance", "performance");
+            menu.append(low_power_item);
+            menu.append(balanced_item);
+            menu.append(performance_item);
 
-            auto_item = new Gtk.CheckMenuItem.with_label("Auto Policy");
-            auto_item.activate.connect(() => {
-                try_call(() => client.set_auto_policy(auto_item.get_active()));
-            });
-            menu.append(auto_item);
+            menu.append(new Gtk.SeparatorMenuItem());
+
+            fan_auto_item = fan_mode_item("Fan Auto", "auto");
+            fan_max_item = fan_mode_item("Fan Max", "max");
+            menu.append(fan_auto_item);
+            menu.append(fan_max_item);
 
             menu.append(new Gtk.SeparatorMenuItem());
 
@@ -49,7 +63,7 @@ namespace VictusControl {
                 try {
                     Process.spawn_command_line_async("victus-control");
                 } catch (Error error) {
-                    status_item.set_label(error.message);
+                    temp_item.set_label(error.message);
                 }
             });
             menu.append(open_item);
@@ -68,12 +82,19 @@ namespace VictusControl {
             return item;
         }
 
+        private Gtk.MenuItem fan_mode_item (string label, string mode) {
+            var item = new Gtk.MenuItem.with_label(label);
+            item.activate.connect(() => try_call(() => client.set_fan_mode(mode)));
+            return item;
+        }
+
         private void connect_helper () {
             try {
                 client = new ControlClient();
             } catch (Error error) {
                 client = null;
-                status_item.set_label("Helper unavailable");
+                temp_item.set_label("Helper unavailable");
+                rpm_item.set_label("Fans unavailable");
             }
         }
 
@@ -86,24 +107,76 @@ namespace VictusControl {
                     return;
                 }
                 var snapshot = client.get_snapshot();
-                var summary = build_summary(snapshot);
-                status_item.set_label(summary);
+                update_menu_state(snapshot);
+                var summary = build_indicator_summary(snapshot);
                 indicator.set_label(summary, summary);
-                auto_item.set_active(snapshot.auto_policy_enabled);
             } catch (Error error) {
-                status_item.set_label("Helper unavailable");
+                temp_item.set_label("Helper unavailable");
+                rpm_item.set_label("Fans unavailable");
                 indicator.set_label("offline", "offline");
                 client = null;
             }
         }
 
-        private string build_summary (Snapshot snapshot) {
-            return "%s | %s | %s/%s RPM".printf(
+        private void update_menu_state (Snapshot snapshot) {
+            temp_item.set_label(
+                snapshot.max_temp_c >= 0 ? "Temp %dC".printf(snapshot.max_temp_c) : "Temp unavailable"
+            );
+            rpm_item.set_label("Fans %s / %s RPM".printf(
+                snapshot.fan1_rpm >= 0 ? "%d".printf(snapshot.fan1_rpm) : "n/a",
+                snapshot.fan2_rpm >= 0 ? "%d".printf(snapshot.fan2_rpm) : "n/a"
+            ));
+
+            var active_profile = snapshot.active_hardware_profile.down();
+            set_current(low_power_item, "Low Power", is_low_power_profile(active_profile));
+            set_current(balanced_item, "Balanced", active_profile == "balanced");
+            set_current(performance_item, "Performance", active_profile == "performance");
+
+            low_power_item.sensitive = snapshot.can_set_hardware_profile
+                && has_low_power_profile(snapshot);
+            balanced_item.sensitive = snapshot.can_set_hardware_profile
+                && has_hw_profile(snapshot, "balanced");
+            performance_item.sensitive = snapshot.can_set_hardware_profile
+                && has_hw_profile(snapshot, "performance");
+
+            set_current(fan_auto_item, "Fan Auto", snapshot.active_fan_mode == "auto");
+            set_current(fan_max_item, "Fan Max", snapshot.active_fan_mode == "max");
+            fan_auto_item.sensitive = snapshot.can_set_fan_mode;
+            fan_max_item.sensitive = snapshot.can_set_fan_mode;
+        }
+
+        private string build_indicator_summary (Snapshot snapshot) {
+            return "%s | %s/%s RPM".printf(
                 snapshot.max_temp_c >= 0 ? "%dC".printf(snapshot.max_temp_c) : "Temp n/a",
-                Formatting.profile(snapshot.active_hardware_profile),
                 snapshot.fan1_rpm >= 0 ? "%d".printf(snapshot.fan1_rpm) : "n/a",
                 snapshot.fan2_rpm >= 0 ? "%d".printf(snapshot.fan2_rpm) : "n/a"
             );
+        }
+
+        private void set_current (Gtk.MenuItem item, string label, bool active) {
+            item.set_label("%s%s".printf(label, active ? ACTIVE_SUFFIX : ""));
+        }
+
+        private static bool has_hw_profile (Snapshot snapshot, string name) {
+            foreach (var profile in snapshot.available_hardware_profiles) {
+                if (profile.down() == name) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private static bool has_low_power_profile (Snapshot snapshot) {
+            foreach (var profile in snapshot.available_hardware_profiles) {
+                if (is_low_power_profile(profile.down())) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private static bool is_low_power_profile (string profile) {
+            return profile == "low-power" || profile == "quiet" || profile == "cool";
         }
 
         private delegate bool BoolCall () throws Error;
@@ -126,7 +199,7 @@ namespace VictusControl {
                     }
                     refresh();
                 } catch (Error retry_error) {
-                    status_item.set_label(retry_error.message);
+                    temp_item.set_label(retry_error.message);
                 }
             }
         }

@@ -40,7 +40,7 @@ namespace VictusControl {
             rows.append(temp_row);
             rows.append(fan_row);
 
-            append(WidgetHelpers.wrap_section("Telemetry", rows));
+            append(WidgetHelpers.wrap_titleless_section(rows));
         }
 
         public void update (Snapshot snapshot) {

@@ -8,6 +8,8 @@ namespace VictusControl {
         public bool can_set_hardware_profile { get; set; default = false; }
         public int fan1_rpm { get; set; default = -1; }
         public int fan2_rpm { get; set; default = -1; }
+        public int fan1_max_rpm { get; set; default = -1; }
+        public int fan2_max_rpm { get; set; default = -1; }
         public int cpu_temp_c { get; set; default = -1; }
         public int gpu_temp_c { get; set; default = -1; }
         public int max_temp_c { get; set; default = -1; }
@@ -30,6 +32,8 @@ namespace VictusControl {
             dict.insert("can_set_hardware_profile", new Variant.boolean(can_set_hardware_profile));
             dict.insert("fan1_rpm", new Variant.int32(fan1_rpm));
             dict.insert("fan2_rpm", new Variant.int32(fan2_rpm));
+            dict.insert("fan1_max_rpm", new Variant.int32(fan1_max_rpm));
+            dict.insert("fan2_max_rpm", new Variant.int32(fan2_max_rpm));
             dict.insert("cpu_temp_c", new Variant.int32(cpu_temp_c));
             dict.insert("gpu_temp_c", new Variant.int32(gpu_temp_c));
             dict.insert("max_temp_c", new Variant.int32(max_temp_c));
@@ -58,6 +62,8 @@ namespace VictusControl {
             object.set_boolean_member("can_set_hardware_profile", can_set_hardware_profile);
             object.set_int_member("fan1_rpm", fan1_rpm);
             object.set_int_member("fan2_rpm", fan2_rpm);
+            object.set_int_member("fan1_max_rpm", fan1_max_rpm);
+            object.set_int_member("fan2_max_rpm", fan2_max_rpm);
             object.set_int_member("cpu_temp_c", cpu_temp_c);
             object.set_int_member("gpu_temp_c", gpu_temp_c);
             object.set_int_member("max_temp_c", max_temp_c);
@@ -94,6 +100,8 @@ namespace VictusControl {
             );
             snapshot.fan1_rpm = lookup_int(dict, "fan1_rpm", -1);
             snapshot.fan2_rpm = lookup_int(dict, "fan2_rpm", -1);
+            snapshot.fan1_max_rpm = lookup_int(dict, "fan1_max_rpm", MANUAL_FAN_MAX_RPM_FALLBACK);
+            snapshot.fan2_max_rpm = lookup_int(dict, "fan2_max_rpm", MANUAL_FAN_MAX_RPM_FALLBACK);
             snapshot.cpu_temp_c = lookup_int(dict, "cpu_temp_c", -1);
             snapshot.gpu_temp_c = lookup_int(dict, "gpu_temp_c", -1);
             snapshot.max_temp_c = lookup_int(dict, "max_temp_c", -1);

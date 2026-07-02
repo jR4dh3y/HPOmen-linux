@@ -35,6 +35,11 @@ install_data(
 )
 
 install_data(
+  'icons/hicolor/512x512/apps/dev.radhey.VictusControl.png',
+  install_dir: join_paths(get_option('datadir'), 'icons', 'hicolor', '512x512', 'apps'),
+)
+
+install_data(
   'dev.radhey.VictusControl.metainfo.xml',
   install_dir: join_paths(get_option('datadir'), 'metainfo'),
 )

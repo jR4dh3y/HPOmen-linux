@@ -7,6 +7,7 @@ namespace VictusControl {
      */
     public class FanBackend : Object {
         private const string FAN_MODE_AUTO = "auto";
+        private const string FAN_MODE_MANUAL = "manual";
         private const string FAN_MODE_MAX = "max";
 
         public void set_fan_mode (string requested) throws Error {
@@ -20,6 +21,9 @@ namespace VictusControl {
             case FAN_MODE_AUTO:
                 value = SYSFS_FAN_MODE_AUTO;
                 break;
+            case FAN_MODE_MANUAL:
+                set_manual_mode();
+                return;
             case FAN_MODE_MAX:
                 value = SYSFS_FAN_MODE_MAX;
                 break;
@@ -44,6 +48,8 @@ namespace VictusControl {
 
             snapshot.fan1_rpm = Fs.read_int(Path.build_filename(hwmon_dir, "fan1_input"));
             snapshot.fan2_rpm = Fs.read_int(Path.build_filename(hwmon_dir, "fan2_input"));
+            snapshot.fan1_max_rpm = read_fan_max_rpm(1);
+            snapshot.fan2_max_rpm = read_fan_max_rpm(2);
             snapshot.can_read_rpm = snapshot.fan1_rpm >= 0 || snapshot.fan2_rpm >= 0;
         }
 
@@ -67,6 +73,9 @@ namespace VictusControl {
             case SYSFS_FAN_MODE_AUTO_INT:
                 snapshot.active_fan_mode = FAN_MODE_AUTO;
                 break;
+            case SYSFS_FAN_MODE_MANUAL_INT:
+                snapshot.active_fan_mode = FAN_MODE_MANUAL;
+                break;
             case SYSFS_FAN_MODE_MAX_INT:
                 snapshot.active_fan_mode = FAN_MODE_MAX;
                 break;
@@ -84,5 +93,28 @@ namespace VictusControl {
             }
             return null;
         }
+
+        public static uint16 read_fan_max_rpm (uint16 fan) {
+            var hwmon_dir = locate_hp_hwmon_dir();
+            if (hwmon_dir == null) {
+                return MANUAL_FAN_MAX_RPM_FALLBACK;
+            }
+            var value = Fs.read_int(Path.build_filename(hwmon_dir, "fan%u_max".printf(fan)));
+            if (value <= 0 || value > uint16.MAX) {
+                return MANUAL_FAN_MAX_RPM_FALLBACK;
+            }
+            return (uint16) value;
+        }
+
+        private void set_manual_mode () throws Error {
+            string reason;
+            var pwm = new FanPwmBackend();
+            if (pwm.has_manual_pwm_control(out reason)) {
+                pwm.set_manual_mode();
+                return;
+            }
+            new FanTargetBackend().set_manual_mode();
+        }
+
     }
 }

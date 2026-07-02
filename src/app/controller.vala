@@ -48,9 +48,19 @@ namespace VictusControl {
             run_with_retry (() => { client.set_auto_policy (enabled); });
         }
 
-        /** Switch fan mode (auto / max). */
+        /** Switch fan mode (auto / manual / max). */
         public void set_fan_mode (string mode) {
             run_with_retry (() => { client.set_fan_mode (mode); });
+        }
+
+        /** Apply a manual RPM target for one fan. */
+        public void set_fan_target (uint16 fan, uint16 rpm) {
+            run_with_retry (() => { client.set_fan_target (fan, rpm); });
+        }
+
+        /** Apply manual RPM targets for both fans. */
+        public void set_fan_levels (uint16 fan1_rpm, uint16 fan2_rpm) {
+            run_with_retry (() => { client.set_fan_levels (fan1_rpm, fan2_rpm); });
         }
 
         /* ---- internals ---- */

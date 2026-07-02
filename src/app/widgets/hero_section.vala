@@ -22,7 +22,8 @@ namespace VictusControl {
             status_label = new Gtk.Label("Connecting");
             status_label.halign = Gtk.Align.END;
             status_label.valign = Gtk.Align.CENTER;
-            status_label.add_css_class("status-pill");
+            status_label.add_css_class("status-text");
+            status_label.add_css_class("status-connecting");
 
             append(hero_title_label);
             append(status_label);
@@ -32,7 +33,7 @@ namespace VictusControl {
             if (error_timeout_id != 0) {
                 return;
             }
-            status_label.label = "Online";
+            set_status("Working", "status-working");
             saved_title = snapshot.product_name != ""
                 ? snapshot.product_name
                 : "Victus Hardware Control";
@@ -41,20 +42,29 @@ namespace VictusControl {
 
         public void show_offline (string error_message) {
             clear_error_timeout ();
-            status_label.label = "Offline";
+            set_status("Unavailable", "status-unavailable");
             hero_title_label.label = "Victus Control";
         }
 
         public void show_error (string error_message) {
             clear_error_timeout ();
-            status_label.label = "Error";
+            set_status("Action failed", "status-error");
             hero_title_label.label = error_message;
             error_timeout_id = Timeout.add_seconds (6, () => {
                 error_timeout_id = 0;
-                status_label.label = "Online";
+                set_status("Working", "status-working");
                 hero_title_label.label = saved_title;
                 return false;
             });
+        }
+
+        private void set_status (string text, string css_class) {
+            status_label.label = text;
+            status_label.remove_css_class("status-connecting");
+            status_label.remove_css_class("status-working");
+            status_label.remove_css_class("status-unavailable");
+            status_label.remove_css_class("status-error");
+            status_label.add_css_class(css_class);
         }
 
         private void clear_error_timeout () {

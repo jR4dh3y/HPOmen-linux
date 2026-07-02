@@ -77,7 +77,7 @@ namespace VictusControl {
             } else if (temp_c >= AUTO_POLICY_TEMP_MID) {
                 return "balanced";
             }
-            return "quiet";
+            return "low-power";
         }
     }
 }

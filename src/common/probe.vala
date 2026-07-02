@@ -54,6 +54,24 @@ namespace VictusControl {
                 if (pwm1_enable != null) {
                     hp.set_string_member("pwm1_enable", pwm1_enable);
                 }
+                var fan1_target = Path.build_filename(hp_hwmon, "fan1_target");
+                var fan2_target = Path.build_filename(hp_hwmon, "fan2_target");
+                var pwm1 = Path.build_filename(hp_hwmon, "pwm1");
+                var pwm2 = Path.build_filename(hp_hwmon, "pwm2");
+                hp.set_boolean_member("fan1_target_present", Fs.exists(fan1_target));
+                hp.set_boolean_member("fan2_target_present", Fs.exists(fan2_target));
+                hp.set_boolean_member("pwm1_present", Fs.exists(pwm1));
+                hp.set_boolean_member("pwm2_present", Fs.exists(pwm2));
+                add_optional_int(hp, "pwm1", pwm1);
+                add_optional_int(hp, "pwm2", pwm2);
+                add_optional_int(hp, "fan1_max", Path.build_filename(hp_hwmon, "fan1_max"));
+                add_optional_int(hp, "fan2_max", Path.build_filename(hp_hwmon, "fan2_max"));
+                string reason;
+                var manual_pwm_available = new FanPwmBackend().has_manual_pwm_control(out reason);
+                var manual_rpm_available = new FanTargetBackend().has_manual_rpm_control(out reason);
+                hp.set_boolean_member("manual_pwm_control_available", manual_pwm_available);
+                hp.set_boolean_member("manual_rpm_control_available", manual_rpm_available);
+                hp.set_boolean_member("manual_control_available", manual_pwm_available || manual_rpm_available);
                 root.set_object_member("hp_hwmon", hp);
             }
 
@@ -63,11 +81,13 @@ namespace VictusControl {
         public static Json.Object safe_hp_wmi () {
             var root = inventory();
             var findings = new Json.Object();
-            findings.set_boolean_member("can_direct_fan_control", false);
-            findings.set_string_member(
-                "fan_control_reason",
-                "Linux hp_wmi exposes fan RPM telemetry here, but no validated direct fan write path is implemented."
-            );
+            string reason;
+            var available = new FanPwmBackend().has_manual_pwm_control(out reason);
+            if (!available) {
+                available = new FanTargetBackend().has_manual_rpm_control(out reason);
+            }
+            findings.set_boolean_member("can_direct_fan_control", available);
+            findings.set_string_member("fan_control_reason", reason);
             root.set_object_member("findings", findings);
             return root;
         }
@@ -106,6 +126,13 @@ namespace VictusControl {
                 return safe_hp_wmi();
             default:
                 throw new ControlError.INVALID_ARGUMENT("Unknown probe: %s".printf(name));
+            }
+        }
+
+        private static void add_optional_int (Json.Object object, string key, string path) {
+            var value = Fs.read_int(path);
+            if (value >= 0) {
+                object.set_int_member(key, value);
             }
         }
 

@@ -6,6 +6,8 @@ namespace VictusControl {
     public class Formatting : Object {
         public static string profile (string raw) {
             switch (raw.down()) {
+            case "low-power":
+                return "Low Power";
             case "cool":
                 return "Cool";
             case "quiet":
@@ -40,6 +42,8 @@ namespace VictusControl {
                 return "Auto";
             case "max":
                 return "Max";
+            case "manual":
+                return "Manual";
             case "unavailable":
                 return "Unavailable";
             default:

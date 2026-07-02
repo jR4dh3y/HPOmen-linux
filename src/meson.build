@@ -8,12 +8,17 @@ gtk4_dep = dependency('gtk4')
 gtk3_dep = dependency('gtk+-3.0')
 ayatana_dep = dependency('ayatana-appindicator3-0.1')
 polkit_dep = dependency('polkit-gobject-1')
+vala_vapi_args = [
+  '--vapidir=/usr/share/vala/vapi',
+]
 
 common_sources = files(
   'common/constants.vala',
   'common/errors.vala',
   'common/formatting.vala',
   'common/fan_backend.vala',
+  'common/fan_target_backend.vala',
+  'common/fan_pwm_backend.vala',
   'common/models.vala',
   'common/sysfs.vala',
   'common/hardware.vala',
@@ -26,6 +31,7 @@ executable(
   common_sources + files(
     'helper/auto_policy.vala',
     'helper/control_service.vala',
+    'helper/manual_fan_controller.vala',
     'helper/main.vala',
   ),
   dependencies: [
@@ -37,6 +43,7 @@ executable(
     json_dep,
     polkit_dep,
   ],
+  vala_args: vala_vapi_args,
   install: true,
 )
 
@@ -53,6 +60,7 @@ executable(
     gee_dep,
     json_dep,
   ],
+  vala_args: vala_vapi_args,
   install: true,
 )
 
@@ -67,6 +75,7 @@ executable(
     
     'app/widgets/thermal_section.vala',
     'app/widgets/profile_section.vala',
+    'app/widgets/fan_target_row.vala',
     'app/widgets/fan_section.vala',
     'app/widgets/main_window.vala',
     'app/main.vala',
@@ -80,6 +89,7 @@ executable(
     json_dep,
     gtk4_dep,
   ],
+  vala_args: vala_vapi_args,
   install: true,
 )
 
@@ -98,8 +108,6 @@ executable(
     gtk3_dep,
     ayatana_dep,
   ],
-  vala_args: [
-    '--vapidir=/usr/share/vala/vapi',
-  ],
+  vala_args: vala_vapi_args,
   install: true,
 )

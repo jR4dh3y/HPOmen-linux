@@ -27,9 +27,17 @@ namespace VictusControl {
 
     /* sysfs fan-mode values written to / read from pwm1_enable. */
     public const string SYSFS_FAN_MODE_AUTO = "2";
+    public const string SYSFS_FAN_MODE_MANUAL = "1";
     public const string SYSFS_FAN_MODE_MAX = "0";
     public const int SYSFS_FAN_MODE_AUTO_INT = 2;
+    public const int SYSFS_FAN_MODE_MANUAL_INT = 1;
     public const int SYSFS_FAN_MODE_MAX_INT = 0;
+
+    public const uint16 MANUAL_FAN_MIN_RPM = 0;
+    public const uint16 MANUAL_FAN_SAFE_RPM_FALLBACK = 2600;
+    public const uint16 MANUAL_FAN_MAX_RPM_FALLBACK = 7000;
+    public const int MANUAL_FAN_PWM_MAX = 255;
+    public const uint MANUAL_FAN_REAPPLY_SECONDS = 90;
 
     /* Temperature normalization ceiling (degrees C). */
     public const double TEMP_NORMALIZE_MAX = 100.0;

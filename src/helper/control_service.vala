@@ -9,6 +9,7 @@ namespace VictusControl {
         public abstract bool set_platform_profile (string profile) throws Error;
         public abstract bool set_auto_policy (bool enabled) throws Error;
         public abstract bool set_fan_mode (string mode) throws Error;
+        public abstract bool set_fan_target (uint16 fan, uint16 rpm) throws Error;
         public abstract bool set_fan_levels (uint16 cpu, uint16 gpu) throws Error;
         public abstract HashTable<string, Variant> run_probe (string probe_name, HashTable<string, Variant> args) throws Error;
     }
@@ -20,10 +21,12 @@ namespace VictusControl {
     public class ControlService : Object, ControlApi {
         private HardwareBackend backend;
         private AutoPolicyController auto_policy;
+        private ManualFanController manual_fans;
 
         public ControlService () {
             backend = new HardwareBackend();
             auto_policy = new AutoPolicyController(backend);
+            manual_fans = new ManualFanController(backend);
         }
 
         public void export (DBusConnection connection) throws IOError {
@@ -50,12 +53,21 @@ namespace VictusControl {
         }
 
         public bool set_fan_mode (string mode) throws Error {
+            if (mode == "auto" || mode == "max") {
+                manual_fans.stop();
+            }
             backend.set_fan_mode(mode);
             return true;
         }
 
+        public bool set_fan_target (uint16 fan, uint16 rpm) throws Error {
+            manual_fans.set_fan_target(fan, rpm);
+            return true;
+        }
+
         public bool set_fan_levels (uint16 cpu, uint16 gpu) throws Error {
-            throw new ControlError.UNSUPPORTED("Granular fan level control is not available. Use fan mode auto or max.");
+            manual_fans.set_fan_levels(cpu, gpu);
+            return true;
         }
 
         public HashTable<string, Variant> run_probe (string probe_name, HashTable<string, Variant> args) throws Error {

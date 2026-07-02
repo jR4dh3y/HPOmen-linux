@@ -150,3 +150,7 @@ Append new mistakes here. Do not rewrite old entries.
 14. **Config accepts poll_interval_seconds=0** — No validation after load. Zero causes a tight CPU-burning poll loop. Rule: clamp user-supplied intervals to sane minimums.
 15. **Auto-policy threshold flapping** — No hysteresis on temperature thresholds. Oscillating at a boundary caused a sysfs write every 5 seconds. Rule: require temperature to cross threshold minus a margin before switching back down.
 16. **Dead CSS installed-path branch** — `css_loader.vala` looked for an installed stylesheet that was never installed by meson. Rule: don't code paths for files that aren't deployed.
+
+### 2026-07-02
+
+17. **Trusted tray checkmarks to render in AppIndicator** — `Gtk.CheckMenuItem` state did not visibly show the current profile/fan mode in the tray menu. Rule: for AppIndicator menus, make current state explicit in the item label instead of relying only on GTK check/radio rendering.
