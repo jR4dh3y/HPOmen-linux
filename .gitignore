@@ -3,7 +3,7 @@ build-local-verify*/
 build-release/
 dist/
 patches/
-.opencode/
+.opencode/*
 .cache/
 prep.md
 mdfiles/
