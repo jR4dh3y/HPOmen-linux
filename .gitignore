@@ -4,3 +4,6 @@ build-release/
 dist/
 patches/
 .opencode/
+prep.md
+mdfiles/
+scripts/
