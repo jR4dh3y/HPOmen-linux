@@ -4,6 +4,6 @@ build-release/
 dist/
 patches/
 .opencode/
+.cache/
 prep.md
 mdfiles/
-scripts/
