@@ -60,7 +60,7 @@ namespace VictusControl {
 
             // Right Column
             var right_col = new Gtk.Box(Gtk.Orientation.VERTICAL, 16);
-            right_col.hexpand = false;
+            right_col.hexpand = true;
             right_col.vexpand = true;
             right_col.append(profiles);
             right_col.append(fans); // Fan section takes the place of System Overview
