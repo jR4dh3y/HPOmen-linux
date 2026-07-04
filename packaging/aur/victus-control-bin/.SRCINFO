@@ -18,6 +18,6 @@ pkgbase = victus-control-bin
 	provides = victus-control
 	conflicts = victus-control
 	source = victus-control-bin-0.2.1.tar.zst::https://github.com/jR4dh3y/HPOmen-linux/releases/download/v0.2.1/victus-control-0.2.1-x86_64.tar.zst
-	sha256sums = SKIP
+	sha256sums = 46ce2242355e21815088693e0e76add8992561c73d123dec05dd4ee7bbbcde1f
 
 pkgname = victus-control-bin
