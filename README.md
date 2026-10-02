@@ -59,12 +59,12 @@ The script builds the project, installs the D-Bus/polkit assets, reloads the sys
 - Exposes HP WMI hardware-profile switching and a temperature-driven auto-policy mode in the helper.
 - Exposes HP WMI hardware profiles through compact GTK controls and the tray menu.
 - Exposes validated fan modes where available: `Auto`, `Manual`, and `Max`.
-- Sets both manual fan levels with one Apply, in the unit the running driver supports:
+- Sets manual fan levels per fan, in the unit the running driver supports:
   - Percent on upstream hp-wmi `pwm1`/`pwm2` (Linux 7.3+ for Victus 15-fb0xxx, board 8A3D). The kernel maps the range onto the board fan table and keeps manual mode alive itself.
   - RPM on the out-of-tree `fan1_target`/`fan2_target` driver, which victusd rewrites every 90 s because firmware drops them.
 - Restores the last hardware profile chosen through Victus Control when victusd starts, because hp-wmi resets Victus S boards to `balanced` at boot.
-- Never blocks the window or tray on hardware: D-Bus calls are asynchronous, victusd runs hardware I/O on one worker thread, and a newer request of the same kind replaces a queued one. Buttons waiting on the helper are outlined until it answers.
-- Shows separate tray readouts for temperature and fan RPM, with active and pending profile/fan mode marked in the menu label.
+- Never blocks the window or tray on hardware: D-Bus calls are asynchronous, victusd runs hardware I/O on one worker thread, and a newer request of the same kind replaces a queued one.
+- Shows separate tray readouts for temperature and fan RPM, with active profile/fan mode marked in the menu label.
 - Keeps tray and GTK4 window as separate processes to avoid GTK3/GTK4 AppIndicator conflicts.
 
 ## Project Structure

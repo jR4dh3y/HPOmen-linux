@@ -21,7 +21,6 @@ namespace VictusControl {
             indicator.set_menu(menu.menu);
 
             actions = new ActionQueue(connection);
-            actions.pending_changed.connect((action, pending) => menu.set_pending(action, pending));
             actions.failed.connect((action, message) => menu.show_message(message));
             actions.drained.connect(() => refresh.begin());
             menu.action_requested.connect((action) => actions.submit(action));

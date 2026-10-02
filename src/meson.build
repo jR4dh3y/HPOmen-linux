@@ -89,7 +89,7 @@ executable(
     'app/widgets/hero_section.vala',
     'app/widgets/thermal_section.vala',
     'app/widgets/profile_section.vala',
-    'app/widgets/fan_level_row.vala',
+    'app/widgets/fan_target_row.vala',
     'app/widgets/fan_section.vala',
     'app/widgets/main_window.vala',
     'app/main.vala',

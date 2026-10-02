@@ -97,7 +97,6 @@ namespace VictusControl {
         }
 
         private void on_action_pending (ControlAction action, bool pending) {
-            profiles.set_pending(action, pending);
             fans.set_pending(action, pending);
         }
     }

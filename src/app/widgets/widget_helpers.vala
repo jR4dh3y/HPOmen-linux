@@ -72,14 +72,6 @@ namespace VictusControl {
             return button;
         }
 
-        public static void update_pending_button (Gtk.Button button, bool pending) {
-            if (pending) {
-                button.add_css_class("pending-pill");
-            } else {
-                button.remove_css_class("pending-pill");
-            }
-        }
-
         public static void update_active_button (Gtk.Button button, bool active) {
             if (active) {
                 button.add_css_class("active-pill");

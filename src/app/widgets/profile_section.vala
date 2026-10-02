@@ -33,13 +33,6 @@ namespace VictusControl {
             update_button(performance_button, can_set && Formatting.has_profile(profiles, "performance"), active == "performance");
         }
 
-        public void set_pending (ControlAction action, bool pending) {
-            if (action.kind != ActionKind.HARDWARE_PROFILE) {
-                return;
-            }
-            WidgetHelpers.update_pending_button(button_for_profile(action.target), pending);
-        }
-
         public void show_offline () {
             low_power_button.sensitive = false;
             balanced_button.sensitive = false;
@@ -51,13 +44,6 @@ namespace VictusControl {
             button.hexpand = true;
             button.clicked.connect(() => action_requested(new ControlAction.hardware_profile(profile)));
             return button;
-        }
-
-        private Gtk.Button button_for_profile (string profile) {
-            if (Formatting.is_low_power_profile(profile)) {
-                return low_power_button;
-            }
-            return profile == "balanced" ? balanced_button : performance_button;
         }
 
         private void update_button (Gtk.Button button, bool supported, bool active) {

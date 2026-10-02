@@ -1,11 +1,10 @@
 namespace VictusControl {
     /**
-     * AppIndicator menu. Current and pending state live in item labels,
-     * because AppIndicator hosts do not render GTK check state reliably.
+     * AppIndicator menu. Current state lives in item labels, because
+     * AppIndicator hosts do not render GTK check state reliably.
      */
     public class TrayMenu : Object {
         private const string ACTIVE_SUFFIX = " •";
-        private const string PENDING_SUFFIX = " …";
 
         public signal void action_requested (ControlAction action);
         public signal void quit_requested ();
@@ -20,8 +19,6 @@ namespace VictusControl {
         private Gtk.MenuItem fan_auto_item;
         private Gtk.MenuItem fan_max_item;
         private HashTable<Gtk.MenuItem, string> base_labels = new HashTable<Gtk.MenuItem, string>(direct_hash, direct_equal);
-        private HashTable<Gtk.MenuItem, bool> active_items = new HashTable<Gtk.MenuItem, bool>(direct_hash, direct_equal);
-        private HashTable<Gtk.MenuItem, bool> pending_items = new HashTable<Gtk.MenuItem, bool>(direct_hash, direct_equal);
 
         public TrayMenu () {
             menu = new Gtk.Menu();
@@ -65,14 +62,6 @@ namespace VictusControl {
             set_state(fan_max_item, snapshot.can_set_fan_mode, snapshot.active_fan_mode == FanBackend.MODE_MAX);
         }
 
-        public void set_pending (ControlAction action, bool pending) {
-            var item = item_for(action);
-            if (item != null) {
-                pending_items[item] = pending;
-                relabel(item);
-            }
-        }
-
         public void show_message (string message) {
             temp_item.set_label(message);
             rpm_item.set_label("Fans unavailable");
@@ -86,28 +75,9 @@ namespace VictusControl {
             );
         }
 
-        private Gtk.MenuItem? item_for (ControlAction action) {
-            if (action.kind == ActionKind.HARDWARE_PROFILE) {
-                if (Formatting.is_low_power_profile(action.target)) {
-                    return low_power_item;
-                }
-                return action.target == "balanced" ? balanced_item : performance_item;
-            }
-            if (action.kind == ActionKind.FAN_MODE) {
-                return action.target == FanBackend.MODE_AUTO ? fan_auto_item : fan_max_item;
-            }
-            return null;
-        }
-
         private void set_state (Gtk.MenuItem item, bool sensitive, bool active) {
             item.sensitive = sensitive;
-            active_items[item] = active;
-            relabel(item);
-        }
-
-        private void relabel (Gtk.MenuItem item) {
-            var suffix = pending_items[item] ? PENDING_SUFFIX : (active_items[item] ? ACTIVE_SUFFIX : "");
-            item.set_label(base_labels[item] + suffix);
+            item.set_label(base_labels[item] + (active ? ACTIVE_SUFFIX : ""));
         }
 
         private Gtk.MenuItem info_item (string label) {
