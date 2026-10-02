@@ -51,6 +51,36 @@ namespace VictusControl {
             }
         }
 
+        public static string fan_level (int value, string unit) {
+            if (value < 0) {
+                return "Unavailable";
+            }
+            return unit == FAN_LEVEL_UNIT_PERCENT ? "%d%%".printf(value) : "%d RPM".printf(value);
+        }
+
+        public static bool is_low_power_profile (string profile) {
+            var name = profile.down();
+            return name == "low-power" || name == "quiet" || name == "cool";
+        }
+
+        public static bool has_profile (string[] profiles, string name) {
+            foreach (var profile in profiles) {
+                if (profile.down() == name) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public static bool has_low_power_profile (string[] profiles) {
+            foreach (var profile in profiles) {
+                if (is_low_power_profile(profile)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         public static string fallback (string value) {
             return value != null && value != "" ? value : "Unavailable";
         }

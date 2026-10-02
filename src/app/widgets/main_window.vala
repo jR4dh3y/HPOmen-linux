@@ -26,6 +26,7 @@ namespace VictusControl {
             controller.snapshot_updated.connect(on_snapshot);
             controller.connection_lost.connect(on_connection_lost);
             controller.action_failed.connect(on_action_failed);
+            controller.action_pending.connect(on_action_pending);
 
             /* ---- widget tree ---- */
             hero = new HeroSection();
@@ -34,9 +35,8 @@ namespace VictusControl {
             fans = new FanSection();
 
             /* wire widget signals -> controller actions */
-            profiles.profile_requested.connect((p) => controller.set_profile(p));
-            fans.fan_mode_requested.connect((m) => controller.set_fan_mode(m));
-            fans.fan_target_requested.connect((f, r) => controller.set_fan_target(f, r));
+            profiles.action_requested.connect((action) => controller.submit(action));
+            fans.action_requested.connect((action) => controller.submit(action));
 
             /* ---- layout ---- */
             var main_box = new Gtk.Box(Gtk.Orientation.VERTICAL, 16);
@@ -94,6 +94,10 @@ namespace VictusControl {
 
         private void on_action_failed (string error_message) {
             hero.show_error(error_message);
+        }
+
+        private void on_action_pending (ControlAction action, bool pending) {
+            fans.set_pending(action, pending);
         }
     }
 }

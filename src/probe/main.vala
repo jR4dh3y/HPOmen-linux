@@ -18,7 +18,7 @@ namespace VictusControl {
                 result = ProbeEngine.inventory();
                 break;
             case "snapshot":
-                result = new HardwareBackend().read_snapshot(false).to_json_object();
+                result = new HardwareBackend().read_snapshot().to_json_object();
                 break;
             case "safe-hp-wmi":
                 result = ProbeEngine.safe_hp_wmi();

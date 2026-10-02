@@ -1,4 +1,10 @@
 namespace VictusControl {
+    /**
+     * Hardware state shared between victusd, the GTK window, the tray, and the probe.
+     *
+     * Every property crosses D-Bus under its snake_case name, so adding a
+     * property is the whole contract change.
+     */
     public class Snapshot : Object {
         public string product_name { get; set; default = ""; }
         public string board_name { get; set; default = ""; }
@@ -8,8 +14,6 @@ namespace VictusControl {
         public bool can_set_hardware_profile { get; set; default = false; }
         public int fan1_rpm { get; set; default = -1; }
         public int fan2_rpm { get; set; default = -1; }
-        public int fan1_max_rpm { get; set; default = -1; }
-        public int fan2_max_rpm { get; set; default = -1; }
         public int cpu_temp_c { get; set; default = -1; }
         public int gpu_temp_c { get; set; default = -1; }
         public int max_temp_c { get; set; default = -1; }
@@ -20,125 +24,83 @@ namespace VictusControl {
         public bool auto_policy_enabled { get; set; default = false; }
         public string active_fan_mode { get; set; default = "unknown"; }
         public string fan_control_reason { get; set; default = ""; }
+        /* FAN_LEVEL_UNIT_RPM or FAN_LEVEL_UNIT_PERCENT; "" without manual control. */
+        public string fan_level_unit { get; set; default = ""; }
+        public int fan1_level_max { get; set; default = -1; }
+        public int fan2_level_max { get; set; default = -1; }
+        /* Current manual levels read back from the driver; -1 when unreadable. */
+        public int fan1_level { get; set; default = -1; }
+        public int fan2_level { get; set; default = -1; }
         public string helper_state { get; set; default = "disconnected"; }
 
         public HashTable<string, Variant> to_variant_dict () {
             var dict = new HashTable<string, Variant>(str_hash, str_equal);
-            dict.insert("product_name", new Variant.string(product_name));
-            dict.insert("board_name", new Variant.string(board_name));
-            dict.insert("bios_version", new Variant.string(bios_version));
-            dict.insert("active_hardware_profile", new Variant.string(active_hardware_profile));
-            dict.insert("available_hardware_profiles", new Variant.strv(available_hardware_profiles));
-            dict.insert("can_set_hardware_profile", new Variant.boolean(can_set_hardware_profile));
-            dict.insert("fan1_rpm", new Variant.int32(fan1_rpm));
-            dict.insert("fan2_rpm", new Variant.int32(fan2_rpm));
-            dict.insert("fan1_max_rpm", new Variant.int32(fan1_max_rpm));
-            dict.insert("fan2_max_rpm", new Variant.int32(fan2_max_rpm));
-            dict.insert("cpu_temp_c", new Variant.int32(cpu_temp_c));
-            dict.insert("gpu_temp_c", new Variant.int32(gpu_temp_c));
-            dict.insert("max_temp_c", new Variant.int32(max_temp_c));
-            dict.insert("can_read_rpm", new Variant.boolean(can_read_rpm));
-            dict.insert("can_read_temp", new Variant.boolean(can_read_temp));
-            dict.insert("can_set_fan_mode", new Variant.boolean(can_set_fan_mode));
-            dict.insert("can_direct_fan_control", new Variant.boolean(can_direct_fan_control));
-            dict.insert("auto_policy_enabled", new Variant.boolean(auto_policy_enabled));
-            dict.insert("active_fan_mode", new Variant.string(active_fan_mode));
-            dict.insert("fan_control_reason", new Variant.string(fan_control_reason));
-            dict.insert("helper_state", new Variant.string(helper_state));
+            foreach (var spec in get_class().list_properties()) {
+                var value = Value(spec.value_type);
+                get_property(spec.name, ref value);
+                dict.insert(key_for(spec), to_variant(value));
+            }
             return dict;
         }
 
         public Json.Object to_json_object () {
             var object = new Json.Object();
-            object.set_string_member("product_name", product_name);
-            object.set_string_member("board_name", board_name);
-            object.set_string_member("bios_version", bios_version);
-            object.set_string_member("active_hardware_profile", active_hardware_profile);
-            var hardware_profiles = new Json.Array();
-            foreach (var profile in available_hardware_profiles) {
-                hardware_profiles.add_string_element(profile);
+            foreach (var spec in get_class().list_properties()) {
+                var value = Value(spec.value_type);
+                get_property(spec.name, ref value);
+                object.set_member(key_for(spec), Json.gvariant_serialize(to_variant(value)));
             }
-            object.set_array_member("available_hardware_profiles", hardware_profiles);
-            object.set_boolean_member("can_set_hardware_profile", can_set_hardware_profile);
-            object.set_int_member("fan1_rpm", fan1_rpm);
-            object.set_int_member("fan2_rpm", fan2_rpm);
-            object.set_int_member("fan1_max_rpm", fan1_max_rpm);
-            object.set_int_member("fan2_max_rpm", fan2_max_rpm);
-            object.set_int_member("cpu_temp_c", cpu_temp_c);
-            object.set_int_member("gpu_temp_c", gpu_temp_c);
-            object.set_int_member("max_temp_c", max_temp_c);
-            object.set_boolean_member("can_read_rpm", can_read_rpm);
-            object.set_boolean_member("can_read_temp", can_read_temp);
-            object.set_boolean_member("can_set_fan_mode", can_set_fan_mode);
-            object.set_boolean_member("can_direct_fan_control", can_direct_fan_control);
-            object.set_boolean_member("auto_policy_enabled", auto_policy_enabled);
-            object.set_string_member("active_fan_mode", active_fan_mode);
-            object.set_string_member("fan_control_reason", fan_control_reason);
-            object.set_string_member("helper_state", helper_state);
             return object;
         }
 
         public static Snapshot from_variant_dict (Variant dict) {
             var snapshot = new Snapshot();
-            snapshot.product_name = lookup_string(dict, "product_name", "");
-            snapshot.board_name = lookup_string(dict, "board_name", "");
-            snapshot.bios_version = lookup_string(dict, "bios_version", "");
-            snapshot.active_hardware_profile = lookup_string(
-                dict,
-                "active_hardware_profile",
-                lookup_string(dict, "active_profile", "")
-            );
-            snapshot.available_hardware_profiles = lookup_strv_with_fallback(
-                dict,
-                "available_hardware_profiles",
-                "available_profiles"
-            );
-            snapshot.can_set_hardware_profile = lookup_bool(
-                dict,
-                "can_set_hardware_profile",
-                lookup_bool(dict, "can_set_profile", false)
-            );
-            snapshot.fan1_rpm = lookup_int(dict, "fan1_rpm", -1);
-            snapshot.fan2_rpm = lookup_int(dict, "fan2_rpm", -1);
-            snapshot.fan1_max_rpm = lookup_int(dict, "fan1_max_rpm", MANUAL_FAN_MAX_RPM_FALLBACK);
-            snapshot.fan2_max_rpm = lookup_int(dict, "fan2_max_rpm", MANUAL_FAN_MAX_RPM_FALLBACK);
-            snapshot.cpu_temp_c = lookup_int(dict, "cpu_temp_c", -1);
-            snapshot.gpu_temp_c = lookup_int(dict, "gpu_temp_c", -1);
-            snapshot.max_temp_c = lookup_int(dict, "max_temp_c", -1);
-            snapshot.can_read_rpm = lookup_bool(dict, "can_read_rpm", false);
-            snapshot.can_read_temp = lookup_bool(dict, "can_read_temp", false);
-            snapshot.can_set_fan_mode = lookup_bool(dict, "can_set_fan_mode", false);
-            snapshot.can_direct_fan_control = lookup_bool(dict, "can_direct_fan_control", false);
-            snapshot.auto_policy_enabled = lookup_bool(dict, "auto_policy_enabled", false);
-            snapshot.active_fan_mode = lookup_string(dict, "active_fan_mode", "unknown");
-            snapshot.fan_control_reason = lookup_string(dict, "fan_control_reason", "");
-            snapshot.helper_state = lookup_string(dict, "helper_state", "disconnected");
+            foreach (var spec in snapshot.get_class().list_properties()) {
+                var variant = dict.lookup_value(key_for(spec), null);
+                if (variant != null) {
+                    snapshot.set_from_variant(spec, variant);
+                }
+            }
             return snapshot;
         }
 
-        private static string lookup_string (Variant dict, string key, string fallback) {
-            var value = dict.lookup_value(key, VariantType.STRING);
-            return value != null ? value.get_string() : fallback;
+        private void set_from_variant (ParamSpec spec, Variant variant) {
+            var value = Value(spec.value_type);
+            if (spec.value_type == typeof(string) && variant.is_of_type(VariantType.STRING)) {
+                value.set_string(variant.get_string());
+            } else if (spec.value_type == typeof(int) && variant.is_of_type(VariantType.INT32)) {
+                value.set_int(variant.get_int32());
+            } else if (spec.value_type == typeof(bool) && variant.is_of_type(VariantType.BOOLEAN)) {
+                value.set_boolean(variant.get_boolean());
+            } else if (spec.value_type == typeof(string[]) && variant.is_of_type(VariantType.STRING_ARRAY)) {
+                value.set_boxed(variant.dup_strv());
+            } else {
+                return;
+            }
+            set_property(spec.name, value);
         }
 
-        private static int lookup_int (Variant dict, string key, int fallback) {
-            var value = dict.lookup_value(key, VariantType.INT32);
-            return value != null ? value.get_int32() : fallback;
+        private static Variant to_variant (Value value) {
+            if (value.holds(typeof(string))) {
+                return new Variant.string(value.get_string() ?? "");
+            }
+            if (value.holds(typeof(int))) {
+                return new Variant.int32(value.get_int());
+            }
+            if (value.holds(typeof(bool))) {
+                return new Variant.boolean(value.get_boolean());
+            }
+            /* A boxed strv carries no Vala length, so walk it to its NULL terminator. */
+            var builder = new VariantBuilder(VariantType.STRING_ARRAY);
+            unowned string[]? list = (string[]?) value.get_boxed();
+            for (int index = 0; list != null && list[index] != null; index++) {
+                builder.add("s", list[index]);
+            }
+            return builder.end();
         }
 
-        private static bool lookup_bool (Variant dict, string key, bool fallback) {
-            var value = dict.lookup_value(key, VariantType.BOOLEAN);
-            return value != null ? value.get_boolean() : fallback;
-        }
-
-        private static string[] lookup_strv (Variant dict, string key) {
-            var value = dict.lookup_value(key, new VariantType("as"));
-            return value != null ? value.dup_strv() : new string[0];
-        }
-
-        private static string[] lookup_strv_with_fallback (Variant dict, string key, string fallback_key) {
-            var values = lookup_strv(dict, key);
-            return values.length > 0 ? values : lookup_strv(dict, fallback_key);
+        private static string key_for (ParamSpec spec) {
+            return spec.name.replace("-", "_");
         }
     }
 }

@@ -59,8 +59,11 @@ The script builds the project, installs the D-Bus/polkit assets, reloads the sys
 - Exposes HP WMI hardware-profile switching and a temperature-driven auto-policy mode in the helper.
 - Exposes HP WMI hardware profiles through compact GTK controls and the tray menu.
 - Exposes validated fan modes where available: `Auto`, `Manual`, and `Max`.
-- Supports manual fan RPM targets through hp-wmi PWM/RPM sysfs controls when the kernel exposes them.
-- Reapplies manual fan targets from the helper when firmware resets them.
+- Sets manual fan levels per fan, in the unit the running driver supports:
+  - Percent on upstream hp-wmi `pwm1`/`pwm2` (Linux 7.3+ for Victus 15-fb0xxx, board 8A3D). The kernel maps the range onto the board fan table and keeps manual mode alive itself.
+  - RPM on the out-of-tree `fan1_target`/`fan2_target` driver, which victusd rewrites every 90 s because firmware drops them.
+- Restores the last hardware profile chosen through Victus Control when victusd starts, because hp-wmi resets Victus S boards to `balanced` at boot.
+- Never blocks the window or tray on hardware: D-Bus calls are asynchronous, victusd runs hardware I/O on one worker thread, and a newer request of the same kind replaces a queued one.
 - Shows separate tray readouts for temperature and fan RPM, with active profile/fan mode marked in the menu label.
 - Keeps tray and GTK4 window as separate processes to avoid GTK3/GTK4 AppIndicator conflicts.
 
@@ -81,5 +84,6 @@ src/
 ## Notes
 
 - Fan and profile controls depend on the host kernel exposing compatible `hp_wmi` sysfs attributes.
+- An out-of-tree `hp-wmi` DKMS module installs under `updates/` and shadows the in-tree driver. Remove it after moving to a kernel with upstream support; `victus-probe inventory` reports `hp_wmi_out_of_tree`, and victusd logs a warning at start.
 - The tray companion requires a desktop session with a working StatusNotifier/AppIndicator host.
 - The helper runs on the system bus and must be installed with the D-Bus service, D-Bus policy, and polkit policy files.

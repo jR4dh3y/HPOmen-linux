@@ -154,3 +154,9 @@ Append new mistakes here. Do not rewrite old entries.
 ### 2026-07-02
 
 17. **Trusted tray checkmarks to render in AppIndicator** — `Gtk.CheckMenuItem` state did not visibly show the current profile/fan mode in the tray menu. Rule: for AppIndicator menus, make current state explicit in the item label instead of relying only on GTK check/radio rendering.
+
+### 2026-10-02
+
+18. **Synchronous D-Bus calls on the GTK main loop froze the window** — `call_sync` plus a sync refresh (and a full retry on failure) blocked GTK for 1–2 s per fan write, because a WMI-backed sysfs write takes about 860 ms. Rule: UI processes use only async D-Bus calls through `ActionQueue`; victusd runs hardware I/O on `HardwareWorker`, never on the bus loop.
+19. **Assumed a kernel attribute existed because the out-of-tree driver had it** — the PWM path scaled against `fan*_max`, which upstream hp-wmi never exports, so every slider value mapped to the wrong speed. Rule: check each sysfs attribute against the in-tree driver for the target kernel, not just the module loaded on the dev machine (`/sys/module/hp_wmi/taint` shows `O` for out-of-tree).
+20. **Kept two copies of the stylesheet** — the embedded fallback CSS drifted from `style.css`. Rule: compile `style.css` into the binary with GResource and keep a single copy.
