@@ -50,7 +50,7 @@ namespace VictusControl {
             clear_error_timeout ();
             set_status("Action failed", "status-error");
             hero_title_label.label = error_message;
-            error_timeout_id = Timeout.add_seconds (6, () => {
+            error_timeout_id = Timeout.add_seconds (ERROR_DISPLAY_SECONDS, () => {
                 error_timeout_id = 0;
                 set_status("Working", "status-working");
                 hero_title_label.label = saved_title;

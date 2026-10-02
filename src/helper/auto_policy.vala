@@ -9,12 +9,15 @@ namespace VictusControl {
      */
     public class AutoPolicyController : Object {
         private HardwareBackend backend;
+        private HardwareWorker worker;
         private uint source_id = 0;
+        private bool tick_running = false;
         private string last_target = "";
         public bool enabled { get; private set; default = false; }
 
-        public AutoPolicyController (HardwareBackend backend) {
+        public AutoPolicyController (HardwareBackend backend, HardwareWorker worker) {
             this.backend = backend;
+            this.worker = worker;
         }
 
         public void set_active (bool enabled) {
@@ -29,27 +32,42 @@ namespace VictusControl {
             }
             if (source_id == 0) {
                 source_id = Timeout.add_seconds(DEFAULT_AUTO_POLICY_INTERVAL_SECONDS, () => {
-                    apply_once();
-                    return this.enabled;
+                    apply_once.begin();
+                    return Source.CONTINUE;
                 });
             }
-            apply_once();
+            apply_once.begin();
         }
 
-        private void apply_once () {
-            var snapshot = backend.read_snapshot(true);
-            if (!snapshot.can_set_hardware_profile || snapshot.max_temp_c < 0) {
+        private async void apply_once () {
+            if (tick_running) {
                 return;
             }
-            var target = choose_target(snapshot.max_temp_c);
+            tick_running = true;
+            try {
+                Snapshot? snapshot = null;
+                yield worker.run(() => {
+                    snapshot = backend.read_snapshot();
+                });
+                if (enabled && snapshot.can_set_hardware_profile && snapshot.max_temp_c >= 0) {
+                    yield apply_target(choose_target(snapshot.max_temp_c));
+                }
+            } catch (Error error) {
+                warning("Auto policy failed: %s", error.message);
+            }
+            tick_running = false;
+        }
+
+        private async void apply_target (string target) throws Error {
             if (target == last_target) {
                 return;
             }
-            try {
+            yield worker.run(() => {
                 backend.set_hardware_profile(backend.choose_hardware_profile_for_policy(target));
+            });
+            /* The user may have disabled the policy while the write was queued. */
+            if (enabled) {
                 last_target = target;
-            } catch (Error error) {
-                warning("Auto policy failed: %s", error.message);
             }
         }
 

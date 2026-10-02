@@ -1,54 +1,53 @@
 namespace VictusControl {
+    /**
+     * Asynchronous proxy for the victusd D-Bus API.
+     *
+     * Every call yields to the caller's main loop, so UI processes never
+     * block on hardware I/O in the helper.
+     */
     public class ControlClient : Object {
-        /** D-Bus call timeout in milliseconds (5 seconds). */
-        private const int CALL_TIMEOUT_MS = 5000;
-
         private DBusProxy proxy;
 
-        public ControlClient () throws Error {
-            proxy = new DBusProxy.for_bus_sync(
+        private ControlClient (DBusProxy proxy) {
+            this.proxy = proxy;
+        }
+
+        public static async ControlClient open () throws Error {
+            var proxy = yield new DBusProxy.for_bus(
                 BusType.SYSTEM,
-                DBusProxyFlags.NONE,
+                DBusProxyFlags.DO_NOT_LOAD_PROPERTIES | DBusProxyFlags.DO_NOT_CONNECT_SIGNALS,
                 null,
                 SERVICE_NAME,
                 OBJECT_PATH,
                 INTERFACE_NAME,
                 null
             );
+            return new ControlClient(proxy);
         }
 
-        public Snapshot get_snapshot () throws Error {
-            var result = proxy.call_sync("GetSnapshot", null, DBusCallFlags.NONE, CALL_TIMEOUT_MS, null);
+        public async Snapshot get_snapshot () throws Error {
+            var result = yield proxy.call("GetSnapshot", null, DBusCallFlags.NONE, HELPER_CALL_TIMEOUT_MS, null);
             return Snapshot.from_variant_dict(result.get_child_value(0));
         }
 
-        public bool set_hardware_profile (string profile) throws Error {
-            return call_bool("SetHardwareProfile", new Variant("(s)", profile));
+        public async void set_hardware_profile (string profile) throws Error {
+            yield call_method("SetHardwareProfile", new Variant("(s)", profile));
         }
 
-        public bool set_platform_profile (string profile) throws Error {
-            return call_bool("SetPlatformProfile", new Variant("(s)", profile));
+        public async void set_auto_policy (bool enabled) throws Error {
+            yield call_method("SetAutoPolicy", new Variant("(b)", enabled));
         }
 
-        public bool set_auto_policy (bool enabled) throws Error {
-            return call_bool("SetAutoPolicy", new Variant("(b)", enabled));
+        public async void set_fan_mode (string mode) throws Error {
+            yield call_method("SetFanMode", new Variant("(s)", mode));
         }
 
-        public bool set_fan_mode (string mode) throws Error {
-            return call_bool("SetFanMode", new Variant("(s)", mode));
+        public async void set_fan_levels (uint16 fan1, uint16 fan2) throws Error {
+            yield call_method("SetFanLevels", new Variant("(qq)", fan1, fan2));
         }
 
-        public bool set_fan_target (uint16 fan, uint16 rpm) throws Error {
-            return call_bool("SetFanTarget", new Variant("(qq)", fan, rpm));
-        }
-
-        public bool set_fan_levels (uint16 cpu, uint16 gpu) throws Error {
-            return call_bool("SetFanLevels", new Variant("(qq)", cpu, gpu));
-        }
-
-        private bool call_bool (string method, Variant parameters) throws Error {
-            var result = proxy.call_sync(method, parameters, DBusCallFlags.NONE, CALL_TIMEOUT_MS, null);
-            return result.get_child_value(0).get_boolean();
+        private async void call_method (string method, Variant parameters) throws Error {
+            yield proxy.call(method, parameters, DBusCallFlags.NONE, HELPER_CALL_TIMEOUT_MS, null);
         }
     }
 }

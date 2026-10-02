@@ -8,6 +8,7 @@ gtk4_dep = dependency('gtk4')
 gtk3_dep = dependency('gtk+-3.0')
 ayatana_dep = dependency('ayatana-appindicator3-0.1')
 polkit_dep = dependency('polkit-gobject-1')
+gnome = import('gnome')
 vala_vapi_args = [
   '--vapidir=/usr/share/vala/vapi',
 ]
@@ -16,19 +17,33 @@ common_sources = files(
   'common/constants.vala',
   'common/errors.vala',
   'common/formatting.vala',
+  'common/manual_fan_driver.vala',
   'common/fan_backend.vala',
   'common/fan_target_backend.vala',
   'common/fan_pwm_backend.vala',
+  'common/platform_profile.vala',
+  'common/thermal_reader.vala',
   'common/models.vala',
   'common/sysfs.vala',
   'common/hardware.vala',
   'common/probe.vala',
   'common/service-client.vala',
+  'common/control_action.vala',
+  'common/helper_connection.vala',
+  'common/action_queue.vala',
+)
+
+app_resources = gnome.compile_resources(
+  'victus-control-resources',
+  'app/victus-control.gresource.xml',
+  source_dir: 'app',
 )
 
 executable(
   'victusd',
   common_sources + files(
+    'helper/hardware_worker.vala',
+    'helper/helper_state.vala',
     'helper/auto_policy.vala',
     'helper/control_service.vala',
     'helper/manual_fan_controller.vala',
@@ -66,16 +81,15 @@ executable(
 
 executable(
   'victus-control',
-  common_sources + files(
+  common_sources + app_resources + files(
     'app/config.vala',
     'app/css_loader.vala',
     'app/controller.vala',
     'app/widgets/widget_helpers.vala',
     'app/widgets/hero_section.vala',
-    
     'app/widgets/thermal_section.vala',
     'app/widgets/profile_section.vala',
-    'app/widgets/fan_target_row.vala',
+    'app/widgets/fan_level_row.vala',
     'app/widgets/fan_section.vala',
     'app/widgets/main_window.vala',
     'app/main.vala',
@@ -96,6 +110,7 @@ executable(
 executable(
   'victus-tray',
   common_sources + files(
+    'tray/tray_menu.vala',
     'tray/main.vala',
   ),
   dependencies: [

@@ -1,10 +1,10 @@
 namespace VictusControl {
     /**
-     * Manages the D-Bus connection to the victusd helper, periodic
-     * polling, and dispatching user actions (profile changes, fan
-     * mode switches, auto-policy toggles).
+     * Owns the victusd connection for the monitor window.
      *
-     * UI widgets never talk to D-Bus directly — they subscribe to
+     * Every helper call is asynchronous: actions go through ActionQueue and
+     * polling never overlaps itself, so the GTK main loop never waits on
+     * hardware. UI widgets never talk to D-Bus directly — they subscribe to
      * signals emitted by this controller instead.
      */
     public class AppController : Object {
@@ -17,94 +17,55 @@ namespace VictusControl {
         /** Emitted after an action fails. */
         public signal void action_failed (string error_message);
 
-        private ControlClient? client;
+        /** Emitted when a requested action starts or stops waiting on the helper. */
+        public signal void action_pending (ControlAction action, bool pending);
+
         private AppConfig config;
+        private HelperConnection connection = new HelperConnection();
+        private ActionQueue actions;
+        private bool refreshing = false;
+        private bool refresh_requested = false;
 
         public AppController (AppConfig config) {
             this.config = config;
-            try {
-                client = new ControlClient();
-            } catch (Error error) {
-                warning("Failed to connect to helper on startup: %s", error.message);
-            }
+            actions = new ActionQueue(connection);
+            actions.pending_changed.connect((action, pending) => action_pending(action, pending));
+            actions.failed.connect((action, message) => action_failed(message));
+            actions.drained.connect(() => refresh.begin());
         }
 
         /** Begin the periodic poll timer. */
         public void start_polling () {
-            refresh();
+            refresh.begin();
             Timeout.add_seconds(config.poll_interval_seconds, () => {
-                refresh();
-                return true;
+                refresh.begin();
+                return Source.CONTINUE;
             });
         }
 
-        /** Request a hardware-profile change. */
-        public void set_profile (string profile) {
-            run_with_retry (() => { client.set_hardware_profile (profile); });
+        public void submit (ControlAction action) {
+            actions.submit(action);
         }
-
-        /** Toggle the temperature-driven auto-policy. */
-        public void set_auto_policy (bool enabled) {
-            run_with_retry (() => { client.set_auto_policy (enabled); });
-        }
-
-        /** Switch fan mode (auto / manual / max). */
-        public void set_fan_mode (string mode) {
-            run_with_retry (() => { client.set_fan_mode (mode); });
-        }
-
-        /** Apply a manual RPM target for one fan. */
-        public void set_fan_target (uint16 fan, uint16 rpm) {
-            run_with_retry (() => { client.set_fan_target (fan, rpm); });
-        }
-
-        /** Apply manual RPM targets for both fans. */
-        public void set_fan_levels (uint16 fan1_rpm, uint16 fan2_rpm) {
-            run_with_retry (() => { client.set_fan_levels (fan1_rpm, fan2_rpm); });
-        }
-
-        /* ---- internals ---- */
-
-        private delegate void ActionCall () throws Error;
 
         /**
-         * Execute a D-Bus action, reconnecting once on failure.
-         *
-         * Handles stale proxy connections that occur when victusd
-         * restarts between poll cycles.
+         * Fetch one snapshot. A request made while a fetch is in flight
+         * runs once afterwards, so post-action state is never skipped.
          */
-        private void run_with_retry (owned ActionCall action) {
-            try {
-                ensure_client ();
-                action ();
-                refresh ();
-            } catch (Error first_error) {
-                client = null;
+        private async void refresh () {
+            if (refreshing) {
+                refresh_requested = true;
+                return;
+            }
+            refreshing = true;
+            do {
+                refresh_requested = false;
                 try {
-                    ensure_client ();
-                    action ();
-                    refresh ();
-                } catch (Error retry_error) {
-                    action_failed (retry_error.message);
+                    snapshot_updated(yield connection.get_snapshot());
+                } catch (Error error) {
+                    connection_lost(error.message);
                 }
-            }
-        }
-
-        private void refresh () {
-            try {
-                ensure_client();
-                var snapshot = client.get_snapshot();
-                snapshot_updated(snapshot);
-            } catch (Error error) {
-                client = null;
-                connection_lost(error.message);
-            }
-        }
-
-        private void ensure_client () throws Error {
-            if (client == null) {
-                client = new ControlClient();
-            }
+            } while (refresh_requested);
+            refreshing = false;
         }
     }
 }
